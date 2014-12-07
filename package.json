@@ -1,0 +1,31 @@
+{
+  "name": "resource-client",
+  "version": "1.0.0",
+  "description": "Easily create api clients for your server side resources.",
+  "author": "Good Eggs <open-source@goodeggs.com>",
+  "contributors": [
+    "dannynelson <danny.edward.nelson@gmail.com>"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "resource"
+  ],
+  "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/goodeggs/resource-client.git"
+  },
+  "homepage": "https://github.com/goodeggs/resource-client",
+  "bugs": "https://github.com/goodeggs/resource-client/issues",
+  "dependencies": {},
+  "devDependencies": {
+    "coffee-script": ">=1.7.x",
+    "mocha": "~1.x.x"
+  },
+  "scripts": {
+    "compile": "coffee --bare --compile --output lib/ src/",
+    "prepublish": "npm run compile",
+    "pretest": "npm run compile",
+    "test": "mocha"
+  }
+}
