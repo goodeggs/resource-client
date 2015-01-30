@@ -1,6 +1,6 @@
 # Resource Client
 
-Easily create api clients for your server side resources. Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resourcehttps://docs.angularjs.org/api/ngResource/service/$resource).
+Easily create api clients for your server side resources. Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resource).
 
 [![NPM version](http://img.shields.io/npm/v/resource-client.svg?style=flat-square)](https://www.npmjs.org/package/resource-client)
 [![Build Status](http://img.shields.io/travis/goodeggs/resource-client.svg?style=flat-square)](https://travis-ci.org/goodeggs/resource-client)
