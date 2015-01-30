@@ -1,6 +1,6 @@
 # Resource Client
 
-Easily create api clients for your server side resources.
+Easily create api clients for your server side resources. Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resourcehttps://docs.angularjs.org/api/ngResource/service/$resource).
 
 [![NPM version](http://img.shields.io/npm/v/resource-client.svg?style=flat-square)](https://www.npmjs.org/package/resource-client)
 [![Build Status](http://img.shields.io/travis/goodeggs/resource-client.svg?style=flat-square)](https://travis-ci.org/goodeggs/resource-client)
@@ -9,12 +9,101 @@ Easily create api clients for your server side resources.
 ## Usage
 
 ```
-npm install resource-client
+npm install resource-client --save
 ```
 
 ```javascript
 var resourceClient = require('resource-client');
+
+var Product = resourceClient({
+  url: 'http://www.mysite.com/api/products/:_id',
+  headers: {
+    'X-Secret-Token': 'ABCD1234'
+  }
+});
+
+Product.query({isActive: true}, function(err, products) {
+  product = products[0]
+  product.name = 'apple'
+  product.save()
+});
 ```
+
+## Creating a Resource
+
+### resourceClient(options)
+
+- **options** - default request options for this resource. You can use any option from the [request](https://github.com/request/request) module. There are a few key differences:
+  - **url** - same as request url but can contain variables prefixed with a colon such as `products/:name`
+  - **json** - set to true by default
+
+
+```javascript
+var resourceClient = require('resource-client');
+
+var Product = resourceClient({
+  url: 'http://www.mysite.com/api/products/:_id',
+  headers: {
+    'X-Secret-Token': 'ABCD1234'
+  }
+})
+```
+
+## Defining Resource Actions
+
+### Resource.action(name, options)
+
+- **name** - name of action
+- **options** - default request options for this action. Overrides defaults set for the resource. You can use any option from the [request](https://github.com/request/request) module. There are a couple extra options available:
+  - **url** - same as request url but can contain variables prefixed with a colon such as `products/:name`
+  - **isArray** - resource is an array. It will not populate variables in the url.
+
+```javascript
+var resourceClient = require('resource-client');
+
+var Product = resourceClient({
+  url: 'http://www.mysite.com/api/products/:_id',
+  headers: {
+    'X-Secret-Token': 'ABCD1234'
+  }
+});
+
+Product.action('query', {
+  method: 'GET'
+  isArray: true
+});
+```
+
+If the method is GET, you can use it as a class method:
+```javascript
+Product.action('get', {
+  method: 'GET'
+});
+// class method
+Product.get({_id: 1234}, function (err, product) { ... })
+```
+If the method is PUT, POST, DELETE, you can use it as an instance method:
+```javascript
+Product.action('save', {
+  method: 'POST'
+});
+// class method
+Product.save({name: 'apple'}, function (err, product) { ... });
+
+// instance method
+product = new Product({name: 'apple'});
+product.save()
+```
+
+## Default Actions
+
+Every new resource will come with these methods by default
+
+- **get** - {method: 'GET'}
+- **query** - {method: 'GET', isArray: true}
+- **update** - {method: 'PUT'}
+- **save** - {method: 'POST'}
+- **remove** - {method: 'DELETE'}
 
 ## Contributing
 

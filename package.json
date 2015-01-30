@@ -8,7 +8,11 @@
   ],
   "license": "MIT",
   "keywords": [
-    "resource"
+    "resource",
+    "request",
+    "ngResource",
+    "client",
+    "api"
   ],
   "main": "lib/index.js",
   "repository": {

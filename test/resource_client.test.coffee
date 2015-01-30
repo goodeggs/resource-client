@@ -137,3 +137,16 @@ describe 'resource-client', ->
         product = @Product.sync.get(_id: @productModel._id)
         product.sync.remove()
         expect(@ProductModel.sync.count()).to.equal 0
+
+  describe 'with headers', ->
+    beforeEach fibrous ->
+      @productModel = @ProductModel.sync.create {name: 'apple', price: 2}
+
+      @Product = resourceClient
+        url: "#{@serverUrl}/api/products/:_id"
+        headers:
+          'X-Secret-Token': 'ABCD1234'
+
+    it 'gets product with specified id', fibrous ->
+      product = @Product.sync.get({_id: @productModel._id})
+      expect(product).to.have.property 'name', 'apple'
