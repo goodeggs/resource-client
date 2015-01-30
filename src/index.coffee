@@ -8,7 +8,7 @@ module.exports = resourceClient = (options) ->
   options.json ?= true
   resourceRequest = request.defaults options
 
-  module.exports = class Resource
+  class Resource
     constructor: (newObject) ->
       _.assign(@, newObject)
 

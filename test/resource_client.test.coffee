@@ -20,6 +20,8 @@ describe 'resource-client', ->
       it 'applies query parameters', fibrous ->
         products = @Product.sync.query({name: ['apple', 'banana']})
         expect(products).to.have.length 2
+        expect(products[0]).to.have.property 'name', 'apple'
+        expect(products[1]).to.have.property 'name', 'banana'
 
       it 'instantiates every object as a resource', fibrous ->
         products = @Product.sync.query()
