@@ -29,7 +29,7 @@ module.exports = resourceClient = (options) ->
         actionRequest {url: requestUrl}, (err, response) ->
           handleResponse(err, response, null, done)
 
-    if options.method is 'GET' and options.isArray
+    else if options.method is 'GET' and options.isArray
       Resource[actionName] = (queryParams={}, done) ->
         [..., done] = arguments
         requestUrl = UrlAssembler()
@@ -39,7 +39,7 @@ module.exports = resourceClient = (options) ->
         actionRequest {url: requestUrl}, (err, response) ->
           handleResponse(err, response, null, done)
 
-    if options.method in ['PUT', 'POST', 'DELETE']
+    else if options.method in ['PUT', 'POST', 'DELETE']
       actionUrl = if options.method is 'POST' then baseUrl else url
 
       # url = baseUrl if options.method is 'POST'
@@ -62,6 +62,7 @@ module.exports = resourceClient = (options) ->
           handleResponse(err, response, @, done)
 
   handleResponse = (err, response, originalObject, done) ->
+    done(err) if err
     if 200 <= response.statusCode < 300
       if Array.isArray(response.body)
         resources = response.body.map (resource) -> new Resource(resource)
@@ -73,8 +74,10 @@ module.exports = resourceClient = (options) ->
           else
             new Resource(response.body)
         done null, resource
+    else if response.statusCode is 404
+      done(null, undefined)
     else
-      done err
+      done(response.body)
 
   getUrlParts = (url) ->
     urlParts = url.split '/:'

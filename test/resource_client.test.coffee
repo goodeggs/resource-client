@@ -140,7 +140,7 @@ describe 'resource-client', ->
         product.sync.remove()
         expect(@ProductModel.sync.count()).to.equal 0
 
-  describe 'with headers', ->
+  describe 'error handling', ->
     beforeEach fibrous ->
       @productModel = @ProductModel.sync.create {name: 'apple', price: 2}
 
@@ -149,6 +149,10 @@ describe 'resource-client', ->
         headers:
           'X-Secret-Token': 'ABCD1234'
 
-    it 'gets product with specified id', fibrous ->
-      product = @Product.sync.get({_id: @productModel._id})
-      expect(product).to.have.property 'name', 'apple'
+    it 'returns undefined if status 404 ', fibrous ->
+      product = @Product.sync.get({_id: '54cfba22ec7d8e00001bd7de'})
+      expect(product).to.be.undefined
+
+    it 'throws an error if status is for any other non-200 status code', fibrous ->
+      # invalid object id
+      expect(-> @Product.sync.get({_id: '1234'})).to.throw
