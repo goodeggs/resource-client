@@ -62,22 +62,23 @@ module.exports = resourceClient = (options) ->
           handleResponse(err, response, @, done)
 
   handleResponse = (err, response, originalObject, done) ->
-    done(err) if err
-    if 200 <= response.statusCode < 300
+    if err
+      return done(err)
+    else if 200 <= response.statusCode < 300
       if Array.isArray(response.body)
         resources = response.body.map (resource) -> new Resource(resource)
-        done null, resources
+        return done null, resources
       else
         resource =
           if originalObject
             _.assign(originalObject, response.body)
           else
             new Resource(response.body)
-        done null, resource
+        return done null, resource
     else if response.statusCode is 404
-      done(null, undefined)
+      return done(null, undefined)
     else
-      done(response.body)
+      return done(response.body)
 
   getUrlParts = (url) ->
     urlParts = url.split '/:'
