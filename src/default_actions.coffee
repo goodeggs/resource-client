@@ -4,6 +4,10 @@ module.exports =
   'query':
     method: 'GET'
     isArray: true
+  'queryOne':
+    method: 'GET'
+    isArray: true
+    returnFirst: true
   'save':
     method: 'POST'
   'update':

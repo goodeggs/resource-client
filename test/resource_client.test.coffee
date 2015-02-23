@@ -17,6 +17,10 @@ describe 'resource-client', ->
         products = @Product.sync.query()
         expect(products).to.have.length 3
 
+      it 'can return first product', fibrous ->
+        product = @Product.sync.queryOne()
+        expect(product).not.to.be.an.instanceof(Array)
+
       it 'applies query parameters', fibrous ->
         products = @Product.sync.query({name: ['apple', 'banana']})
         expect(products).to.have.length 2
