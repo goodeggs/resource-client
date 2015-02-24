@@ -57,6 +57,7 @@ var Product = resourceClient({
 - **options** - default request options for this action. Overrides defaults set for the resource. You can use any option from the [request](https://github.com/request/request) module. There are a couple extra options available:
   - **url** - same as request url but can contain variables prefixed with a colon such as `products/:name`
   - **isArray** - resource is an array. It will not populate variables in the url.
+  - **returnFirst** - resource is an array. It will return the first result from the array
 
 ```javascript
 var resourceClient = require('resource-client');
@@ -71,6 +72,12 @@ var Product = resourceClient({
 Product.action('query', {
   method: 'GET'
   isArray: true
+});
+
+Product.action('queryOne', {
+  method: 'GET'
+  isArray: true
+  returnFirst: true
 });
 ```
 
@@ -101,6 +108,7 @@ Every new resource will come with these methods by default
 
 - **get** - {method: 'GET'}
 - **query** - {method: 'GET', isArray: true}
+- **queryOne** - {method: 'GET', isArray: true, returnFirst: true}
 - **update** - {method: 'PUT'}
 - **save** - {method: 'POST'}
 - **remove** - {method: 'DELETE'}

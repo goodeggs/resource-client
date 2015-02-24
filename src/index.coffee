@@ -37,7 +37,7 @@ module.exports = resourceClient = (options) ->
           .query(queryParams)
           .toString()
         actionRequest {url: requestUrl}, (err, response) ->
-          handleResponse(err, response, null, done)
+          handleResponse(err, response, null, done, options)
 
     else if options.method in ['PUT', 'POST', 'DELETE']
       actionUrl = if options.method is 'POST' then baseUrl else url
@@ -61,12 +61,13 @@ module.exports = resourceClient = (options) ->
         actionRequest {url: requestUrl, body: @}, (err, response) ->
           handleResponse(err, response, @, done)
 
-  handleResponse = (err, response, originalObject, done) ->
+  handleResponse = (err, response, originalObject, done, options = {}) ->
     if err
       return done(err)
     else if 200 <= response.statusCode < 300
       if Array.isArray(response.body)
         resources = response.body.map (resource) -> new Resource(resource)
+        resources = resources[0] if options.returnFirst
         return done null, resources
       else
         resource =
