@@ -160,3 +160,13 @@ describe 'resource-client', ->
     it 'throws an error if status is for any other non-200 status code', fibrous ->
       # invalid object id
       expect(-> @Product.sync.get({_id: '1234'})).to.throw
+
+    it 'stringifies the error message if it is an object (for friendly error logging)', fibrous ->
+      testErr = null
+      try
+        # invalid object id
+        @Product.sync.get({_id: '1234'})
+      catch err
+        testErr = err
+
+      expect(testErr.stack).to.contain 'Cast to ObjectId failed for value'
