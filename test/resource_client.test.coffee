@@ -1,3 +1,7 @@
+# TODO the server here shouldn't be necessary –
+# unit test this module and assume that request and express and resource-schema are tested elsewhere.
+# (need to figure out how to stub the right `request` methods, b/c of `request.defaults` closures.)
+
 resourceClient = require '..'
 fibrous = require 'fibrous'
 
