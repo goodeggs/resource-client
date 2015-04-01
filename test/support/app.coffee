@@ -7,6 +7,9 @@ app.use bodyParser.urlencoded()
 
 app.use '/api/products', require './products'
 
+app.get '/headers', (req, res) ->
+  res.send req.headers
+
 app.use (err, req, res, next) -> # add standard error-catching middleware
   console.log {err}
   throw err unless err.isBoom

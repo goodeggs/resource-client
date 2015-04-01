@@ -44,7 +44,7 @@ module.exports = resourceClient = (options) ->
 
       do (methodFn = options.method.toLowerCase()) ->
         if methodFn is 'delete' then methodFn = 'del'
-        # url = baseUrl if options.method is 'POST'
+
         Resource[actionName] = (body, queryParams={}, done) ->
           [..., done] = arguments
           requestUrl = do ->

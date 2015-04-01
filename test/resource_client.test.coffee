@@ -64,7 +64,6 @@ describe 'resource-client', ->
 
       it 'instantiates object as a resource', fibrous ->
         product = @Product.sync.get({_id: @orange._id})
-        products = @Product.sync.query()
         expect(product).to.be.instanceOf @Product
 
     describe 'instance method', ->
@@ -147,6 +146,39 @@ describe 'resource-client', ->
         product = @Product.sync.get(_id: @productModel._id)
         product.sync.remove()
         expect(@ProductModel.sync.count()).to.equal 0
+
+
+  describe 'custom POST action method', ->
+    describe 'class method', ->
+      beforeEach fibrous ->
+        @Product = resourceClient url: "#{@serverUrl}/api/products/:_id"
+        @Product.action 'insert',
+          method: 'POST'
+
+      it 'creates the object', fibrous ->
+        product = @Product.sync.insert({name: 'pineapple'})
+        expect(@ProductModel.sync.count()).to.equal 1
+        expect(@ProductModel.sync.findOne()).to.have.property 'name', 'pineapple'
+
+
+  describe 'headers', ->
+    beforeEach ->
+      @Product = resourceClient
+        url: "#{@serverUrl}/api/products/:_id"
+        headers:
+          'x-default': 'A'
+
+      @Product.action 'getMyHeaders',
+        method: 'GET'
+        url: "#{@serverUrl}/headers"   # just spits back headers. don't care about products.
+        headers:
+          'x-action': 'B'
+
+    it 'combines headers from resource and action', fibrous ->
+      headers = @Product.sync.getMyHeaders()
+      expect(headers).to.have.property 'x-default', 'A'
+      expect(headers).to.have.property 'x-action', 'B'
+
 
   describe 'error handling', ->
     beforeEach fibrous ->
