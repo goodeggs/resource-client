@@ -19,24 +19,40 @@ module.exports = resourceClient = (options) ->
     actionRequest = resourceRequest.defaults options
 
     if options.method is 'GET' and not options.isArray
-      Resource[actionName] = (paramConfig={}, queryParams={}, done) ->
-        [..., done] = arguments
-        requestUrl = UrlAssembler()
+      #
+      # get single w/ params (class method).
+      #
+      # call w/ `({params}, {query}, {otherOptions}, callback)`
+      #      OR `({params}, {query}, callback)`
+      #      OR `({params}, callback)`
+      #
+      Resource[actionName] = (params, opts..., done) ->
+        queryParams = opts.shift() or {}
+        reqOptions = opts.pop() or {}
+        reqOptions.url = UrlAssembler()
           .template(url)
-          .param(paramConfig)
+          .param(params)
           .query(queryParams)
           .toString()
-        actionRequest.get {url: requestUrl}, (err, response) ->
+        actionRequest.get reqOptions, (err, response) ->
           handleResponse(err, response, null, done)
 
     else if options.method is 'GET' and options.isArray
-      Resource[actionName] = (queryParams={}, done) ->
-        [..., done] = arguments
-        requestUrl = UrlAssembler()
+      #
+      # get multi w/o params (class method).
+      #
+      # call w/ `({query}, {otherOptions}, callback)`
+      #      OR `({query}, callback)`
+      #      OR `(callback)`
+      #
+      Resource[actionName] = (opts..., done) ->
+        queryParams = opts.shift() or {}
+        reqOptions = opts.pop() or {}
+        reqOptions.url = UrlAssembler()
           .template(baseUrl)
           .query(queryParams)
           .toString()
-        actionRequest.get {url: requestUrl}, (err, response) ->
+        actionRequest.get reqOptions, (err, response) ->
           handleResponse(err, response, null, done, options)
 
     else if options.method in ['PUT', 'POST', 'DELETE']
@@ -44,24 +60,42 @@ module.exports = resourceClient = (options) ->
 
       do (methodFn = options.method.toLowerCase()) ->
         if methodFn is 'delete' then methodFn = 'del'
-
-        Resource[actionName] = (body, queryParams={}, done) ->
-          [..., done] = arguments
-          requestUrl = do ->
+        #
+        # modify single (class method).
+        #
+        # call w/ `(body, {query}, {otherOptions}, callback)`
+        #      OR `(body, {query}, callback)`
+        #      OR `(body, callback)`
+        #
+        Resource[actionName] = (body, opts..., done) ->
+          queryParams = opts.shift() or {}
+          reqOptions = opts.pop() or {}
+          reqOptions.body = body
+          reqOptions.url = do ->
             requestUrl = UrlAssembler().template(actionUrl)
             requestUrl.param(idField, body[idField]) for idField in idFields
             requestUrl.query(queryParams).toString()
-          actionRequest[methodFn] {url: requestUrl, body: body}, (err, response) ->
+          actionRequest[methodFn] reqOptions, (err, response) ->
             handleResponse(err, response, null, done)
 
-        Resource::[actionName] = (queryParams={}, done) ->
-          [..., done] = arguments
-          requestUrl = do =>
+        #
+        # modify single (instance method).
+        #
+        # call w/ `({query}, {otherOptions}, callback)`
+        #      OR `({query}, callback)`
+        #      OR `(callback)`
+        #
+        Resource::[actionName] = (opts..., done) ->
+          queryParams = opts.shift() or {}
+          reqOptions = opts.pop() or {}
+          reqOptions.body = @
+          reqOptions.url = do =>
             requestUrl = UrlAssembler().template(actionUrl)
             requestUrl.param(idField, @[idField]) for idField in idFields
             requestUrl.query(queryParams).toString()
-          actionRequest[methodFn] {url: requestUrl, body: @}, (err, response) ->
+          actionRequest[methodFn] reqOptions, (err, response) ->
             handleResponse(err, response, @, done)
+
 
   handleResponse = (err, response, originalObject, done, options = {}) ->
     if err

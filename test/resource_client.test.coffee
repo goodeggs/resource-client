@@ -161,23 +161,48 @@ describe 'resource-client', ->
         expect(@ProductModel.sync.findOne()).to.have.property 'name', 'pineapple'
 
 
+  describe 'per-request options', ->
+    beforeEach ->
+      @Thing = resourceClient
+        url: "#{@serverUrl}/api/will-be-overridden/:_id"
+
+      @Thing.action 'getWithHeader',
+        method: 'GET'
+        url: "#{@serverUrl}/regurgitate"
+
+    it 'includes headers and query params in request', fibrous ->
+      response = @Thing.sync.getWithHeader \
+        {_id: 'ignored'},   # params
+        { 'foo': 'bar' },   # query params
+        { headers: { 'x-auth': 'someone' } }  # other options
+      expect(response).to.have.property 'headers'
+      expect(response).to.have.property 'query'
+      expect(response.query).to.have.property 'foo', 'bar'
+      expect(response.headers).to.have.property 'x-auth', 'someone'
+
+
   describe 'headers', ->
     beforeEach ->
-      @Product = resourceClient
-        url: "#{@serverUrl}/api/products/:_id"
+      @Thing = resourceClient
+        url: "#{@serverUrl}/api/will-be-overridden"
         headers:
           'x-default': 'A'
 
-      @Product.action 'getMyHeaders',
+      @Thing.action 'getMyHeaders',
         method: 'GET'
-        url: "#{@serverUrl}/headers"   # just spits back headers. don't care about products.
+        url: "#{@serverUrl}/regurgitate"
         headers:
           'x-action': 'B'
 
-    it 'combines headers from resource and action', fibrous ->
-      headers = @Product.sync.getMyHeaders()
-      expect(headers).to.have.property 'x-default', 'A'
-      expect(headers).to.have.property 'x-action', 'B'
+    it 'combines headers from resource, action, and request', fibrous ->
+      response = @Thing.sync.getMyHeaders \
+        {},    # params
+        {},    # query params
+        { headers: { 'x-request': 'C' } }  # other options
+      expect(response).to.have.property 'headers'
+      expect(response.headers).to.have.property 'x-default', 'A'
+      expect(response.headers).to.have.property 'x-action', 'B'
+      expect(response.headers).to.have.property 'x-request', 'C'
 
 
   describe 'error handling', ->
