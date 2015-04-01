@@ -26,7 +26,7 @@ module.exports = resourceClient = (options) ->
           .param(paramConfig)
           .query(queryParams)
           .toString()
-        actionRequest {url: requestUrl}, (err, response) ->
+        actionRequest.get {url: requestUrl}, (err, response) ->
           handleResponse(err, response, null, done)
 
     else if options.method is 'GET' and options.isArray
@@ -36,30 +36,32 @@ module.exports = resourceClient = (options) ->
           .template(baseUrl)
           .query(queryParams)
           .toString()
-        actionRequest {url: requestUrl}, (err, response) ->
+        actionRequest.get {url: requestUrl}, (err, response) ->
           handleResponse(err, response, null, done, options)
 
     else if options.method in ['PUT', 'POST', 'DELETE']
       actionUrl = if options.method is 'POST' then baseUrl else url
 
-      # url = baseUrl if options.method is 'POST'
-      Resource[actionName] = (body, queryParams={}, done) ->
-        [..., done] = arguments
-        requestUrl = do ->
-          requestUrl = UrlAssembler().template(actionUrl)
-          requestUrl.param(idField, body[idField]) for idField in idFields
-          requestUrl.query(queryParams).toString()
-        actionRequest {url: requestUrl, body: body}, (err, response) ->
-          handleResponse(err, response, null, done)
+      do (methodFn = options.method.toLowerCase()) ->
+        if methodFn is 'delete' then methodFn = 'del'
+        # url = baseUrl if options.method is 'POST'
+        Resource[actionName] = (body, queryParams={}, done) ->
+          [..., done] = arguments
+          requestUrl = do ->
+            requestUrl = UrlAssembler().template(actionUrl)
+            requestUrl.param(idField, body[idField]) for idField in idFields
+            requestUrl.query(queryParams).toString()
+          actionRequest[methodFn] {url: requestUrl, body: body}, (err, response) ->
+            handleResponse(err, response, null, done)
 
-      Resource::[actionName] = (queryParams={}, done) ->
-        [..., done] = arguments
-        requestUrl = do =>
-          requestUrl = UrlAssembler().template(actionUrl)
-          requestUrl.param(idField, @[idField]) for idField in idFields
-          requestUrl.query(queryParams).toString()
-        actionRequest {url: requestUrl, body: @}, (err, response) ->
-          handleResponse(err, response, @, done)
+        Resource::[actionName] = (queryParams={}, done) ->
+          [..., done] = arguments
+          requestUrl = do =>
+            requestUrl = UrlAssembler().template(actionUrl)
+            requestUrl.param(idField, @[idField]) for idField in idFields
+            requestUrl.query(queryParams).toString()
+          actionRequest[methodFn] {url: requestUrl, body: @}, (err, response) ->
+            handleResponse(err, response, @, done)
 
   handleResponse = (err, response, originalObject, done, options = {}) ->
     if err
