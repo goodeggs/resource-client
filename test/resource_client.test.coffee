@@ -19,6 +19,7 @@ describe 'resource-client', ->
 
       it 'gets all products', fibrous ->
         products = @Product.sync.query()
+        console.log {products}
         expect(products).to.have.length 3
 
       it 'can return first product', fibrous ->
