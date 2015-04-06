@@ -34,7 +34,7 @@
     "body-parser": "^1.10.2",
     "resource-schema": "^0.12.1",
     "fibrous": "^0.3.3",
-    "mongoose": "^3.8.22"
+    "mongoose": "3.8.22"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
