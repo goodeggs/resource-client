@@ -53,7 +53,6 @@ module.exports = resourceClient = (options) ->
           .query(queryParams)
           .toString()
         actionRequest.get reqOptions, (err, response) ->
-          console.log actionName, err, response?.body
           handleResponse(err, response, null, done, options)
 
     else if options.method in ['PUT', 'POST', 'DELETE']
@@ -104,13 +103,10 @@ module.exports = resourceClient = (options) ->
 
     else if 200 <= response.statusCode < 300
       if Array.isArray(response.body)
-        console.log "body is an array"
         resources = response.body.map (resource) -> new Resource(resource)
-        console.log "mapped", resources
         resources = resources[0] if options.returnFirst
         return done null, resources
       else
-        console.log "body is not an array"
         resource =
           if originalObject
             _.assign(originalObject, response.body)
@@ -122,7 +118,6 @@ module.exports = resourceClient = (options) ->
       return done(null, undefined)
 
     else
-      console.log "parsing error message", response.body
       errorMessage = JSON.stringify(response.body)
       return done(new Error(errorMessage))
 
