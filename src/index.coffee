@@ -53,6 +53,7 @@ module.exports = resourceClient = (options) ->
           .query(queryParams)
           .toString()
         actionRequest.get reqOptions, (err, response) ->
+          console.log actionName, err, response?.body
           handleResponse(err, response, null, done, options)
 
     else if options.method in ['PUT', 'POST', 'DELETE']
