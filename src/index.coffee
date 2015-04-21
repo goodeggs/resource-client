@@ -4,7 +4,7 @@ UrlAssembler = require 'url-assembler'
 defaultActions = require './default_actions'
 
 module.exports = resourceClient = (options) ->
-  url = options.url
+  originalUrl = options.url
   options.json ?= true
   resourceRequest = request.defaults options
 
@@ -12,8 +12,12 @@ module.exports = resourceClient = (options) ->
     constructor: (newObject) ->
       _.assign(@, newObject)
 
+    # Strip prototype properties
+    toObject: ->
+      JSON.parse JSON.stringify @
+
   Resource.action = (actionName, options) ->
-    url = options.url if options.url
+    url = if options.url then options.url else originalUrl
     [baseUrl, idFields] = getUrlParts(url)
 
     actionRequest = resourceRequest.defaults options
@@ -29,11 +33,8 @@ module.exports = resourceClient = (options) ->
       Resource[actionName] = (params, opts..., done) ->
         queryParams = opts.shift() or {}
         reqOptions = opts.pop() or {}
-        reqOptions.url = UrlAssembler()
-          .template(url)
-          .param(params)
-          .query(queryParams)
-          .toString()
+        reqOptions.url = UrlAssembler().template(url).param(params).toString()
+        reqOptions.qs = queryParams
         actionRequest.get reqOptions, (err, response) ->
           handleResponse(err, response, null, done)
 
@@ -48,16 +49,13 @@ module.exports = resourceClient = (options) ->
       Resource[actionName] = (opts..., done) ->
         queryParams = opts.shift() or {}
         reqOptions = opts.pop() or {}
-        reqOptions.url = UrlAssembler()
-          .template(baseUrl)
-          .query(queryParams)
-          .toString()
+        reqOptions.url = UrlAssembler().template(baseUrl).toString()
+        reqOptions.qs = queryParams
         actionRequest.get reqOptions, (err, response) ->
           handleResponse(err, response, null, done, options)
 
     else if options.method in ['PUT', 'POST', 'DELETE']
       actionUrl = if options.method is 'POST' then baseUrl else url
-
       do (methodFn = options.method.toLowerCase()) ->
         if methodFn is 'delete' then methodFn = 'del'
         #
@@ -73,8 +71,10 @@ module.exports = resourceClient = (options) ->
           reqOptions.body = body
           reqOptions.url = do ->
             requestUrl = UrlAssembler().template(actionUrl)
-            requestUrl.param(idField, body[idField]) for idField in idFields
-            requestUrl.query(queryParams).toString()
+            unless options.method is 'POST'
+              requestUrl.param(idField, body[idField]) for idField in idFields
+            requestUrl.toString()
+          reqOptions.qs = queryParams
           actionRequest[methodFn] reqOptions, (err, response) ->
             handleResponse(err, response, null, done)
 
@@ -92,7 +92,8 @@ module.exports = resourceClient = (options) ->
           reqOptions.url = do =>
             requestUrl = UrlAssembler().template(actionUrl)
             requestUrl.param(idField, @[idField]) for idField in idFields
-            requestUrl.query(queryParams).toString()
+            requestUrl.toString()
+          reqOptions.qs = queryParams
           actionRequest[methodFn] reqOptions, (err, response) ->
             handleResponse(err, response, @, done)
 
@@ -129,5 +130,3 @@ module.exports = resourceClient = (options) ->
     Resource.action actionName, actionConfig
 
   return Resource
-
-module.exports.request = request
