@@ -193,15 +193,34 @@ describe 'resource-client', ->
         product.sync.remove()
         expect(api.isDone()).to.be.true
 
-  describe 'custom POST action method', ->
-    describe 'class method', ->
-      it 'creates the object', fibrous ->
-        @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
-        @Product.action 'insert', {method: 'POST'}
+  describe 'custom action', ->
+    describe 'custom POST action method', ->
+      describe 'class method', ->
+        it 'creates the object', fibrous ->
+          @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
+          @Product.action 'insert', {method: 'POST'}
+          api = nock(serverUrl)
+            .post('/api/products', {price: 2})
+            .reply(200, {_id: '1234', price: 2})
+          product = @Product.sync.insert({price: 2})
+          expect(api.isDone()).to.be.true
+
+    describe 'custom url in action', ->
+      it 'doesnt pollute other actions', fibrous ->
+        Product = resourceClient url: "#{serverUrl}/api/products/:_id"
+
+        Product.action 'deliver',
+          method: 'POST'
+          url: "#{serverUrl}/api/products/deliver"
+
+        Product.action 'save',
+          method: 'POST'
+
         api = nock(serverUrl)
-          .post('/api/products', {price: 2})
-          .reply(200, {_id: '1234', price: 2})
-        product = @Product.sync.insert({price: 2})
+          .post('/api/products')
+          .reply(200, {price: 2})
+        product = new Product({price: 2})
+        product.sync.save()
         expect(api.isDone()).to.be.true
 
   describe 'per-request options', ->
