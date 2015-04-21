@@ -129,3 +129,5 @@ module.exports = resourceClient = (options) ->
     Resource.action actionName, actionConfig
 
   return Resource
+
+module.exports.request = request

@@ -2,6 +2,7 @@
 # unit test this module and assume that request and express and resource-schema are tested elsewhere.
 # (need to figure out how to stub the right `request` methods, b/c of `request.defaults` closures.)
 
+request = require 'request'
 resourceClient = require '..'
 fibrous = require 'fibrous'
 
@@ -231,3 +232,6 @@ describe 'resource-client', ->
         testErr = err
 
       expect(testErr.stack).to.contain 'Cast to ObjectId failed for value'
+
+  it 'exposes request module for testing', ->
+    expect(resourceClient.request).to.deep.equal request
