@@ -84,7 +84,7 @@ describe 'resource-client', ->
         api = nock(serverUrl)
           .get('/api/products/1234?' + encodeURI('select=price'))
           .reply(200, {_id: '1234', price: 2.5})
-        product = @Product.sync.get({_id: '1234'}, {select: 'price'})
+        product = @Product.sync.get({_id: '1234', select: 'price'})
         expect(product.toObject()).to.deep.equal {_id: '1234', price: 2.5}
         expect(api.isDone()).to.be.true
 
@@ -111,7 +111,7 @@ describe 'resource-client', ->
         @api = nock(serverUrl)
           .put('/api/products/1234', {_id: '1234', price: 2})
           .reply(201, {_id: '1234', price: 2})
-        @product = @Product.sync.update({_id: '1234', price: 2})
+        @product = @Product.sync.update({_id: '1234'}, {_id: '1234', price: 2})
 
       it 'sends PUT request with correct data', fibrous ->
         expect(@product.toObject()).to.deep.equal {_id: '1234', price: 2}
@@ -122,7 +122,9 @@ describe 'resource-client', ->
 
     describe 'instance method', ->
       beforeEach fibrous ->
-        @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
+        @Product = resourceClient
+          url: "#{serverUrl}/api/products/:_id"
+          params: {_id: '@_id'}
 
       it 'updates the product', fibrous ->
         api = nock(serverUrl)
@@ -137,21 +139,21 @@ describe 'resource-client', ->
       it 'updates the passed object', fibrous ->
         @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
         api = nock(serverUrl)
-          .post('/api/products', {_id: '1234', price: 2})
+          .post('/api/products', {price: 2})
           .reply(201, {_id: '1234', price: 2})
-        product = @Product.sync.save({_id: '1234', price: 2})
+        product = @Product.sync.save({}, {price: 2})
         expect(api.isDone()).to.be.true
 
       it 'returns instance of resource', fibrous ->
         @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
         api = nock(serverUrl)
-          .post('/api/products', {_id: '1234', price: 2})
+          .post('/api/products', {price: 2})
           .reply(201, {_id: '1234', price: 2})
-        product = @Product.sync.save({_id: '1234', price: 2})
+        product = @Product.sync.save({}, {price: 2})
         expect(product).be.an.instanceOf @Product
         expect(api.isDone()).to.be.true
 
-      it.skip 'posts to urls with multiple variables', fibrous ->
+      it 'posts to urls with multiple variables', fibrous ->
         @Product = resourceClient url: "#{serverUrl}/api/store/:storeSlug/products/:_id"
         api = nock(serverUrl)
           .post('/api/store/sfbay/products', {price: 2})
@@ -185,7 +187,9 @@ describe 'resource-client', ->
         @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
 
       it 'deletes the object', fibrous ->
-        @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
+        @Product = resourceClient
+          url: "#{serverUrl}/api/products/:_id"
+          params: {_id: '@_id'}
         api = nock(serverUrl)
           .delete('/api/products/1234')
           .reply(200, {_id: '1234', price: 2})
@@ -193,16 +197,61 @@ describe 'resource-client', ->
         product.sync.remove()
         expect(api.isDone()).to.be.true
 
+  describe '@ params', ->
+    it 'reads the value from the body if not in the params', fibrous ->
+      @Product = resourceClient
+        url: "#{serverUrl}/api/products/:_id"
+        params: {_id: '@_id'}
+
+      api = nock(serverUrl)
+        .put('/api/products/1234', {_id: '1234'})
+        .reply(200, {_id: '1234'})
+
+      product = new @Product({_id: '1234'})
+      product.sync.update()
+      expect(api.isDone()).to.be.true
+
+    it 'removes the param if not in the body', fibrous ->
+      @Product = resourceClient
+        url: "#{serverUrl}/api/products/:_id"
+        params: {_id: '@_id'}
+
+      api = nock(serverUrl)
+        .put('/api/products', {price: 2})
+        .reply(200, {_id: '1234', price: 2})
+
+      product = new @Product({price: 2})
+      product.sync.update()
+      expect(api.isDone()).to.be.true
+
+    it 'uses the request param if there is a request param', fibrous ->
+      @Product = resourceClient
+        url: "#{serverUrl}/api/products/:_id"
+        params: {_id: '@_id'}
+
+      api = nock(serverUrl)
+        .put('/api/products/1234', {})
+        .reply(200, {_id: '1234', price: 2})
+
+      product = @Product.sync.update({_id: '1234'}, {})
+      expect(api.isDone()).to.be.true
+
   describe 'custom action', ->
     describe 'custom POST action method', ->
       describe 'class method', ->
         it 'creates the object', fibrous ->
-          @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
-          @Product.action 'insert', {method: 'POST'}
+          Subscription = resourceClient
+            url: "#{serverUrl}/api/subscriptions/:subscriptionId"
+
+          Subscription.action 'skipProduct',
+            method: 'POST'
+            url: "#{serverUrl}/api/subscriptions/:subscriptionId/products/:productId/skips"
+
           api = nock(serverUrl)
-            .post('/api/products', {price: 2})
-            .reply(200, {_id: '1234', price: 2})
-          product = @Product.sync.insert({price: 2})
+            .post('/api/subscriptions/1234/products/4321/skips', {date: '2014-04-01'})
+            .reply(200, {_id: '1234'})
+
+          Subscription.sync.skipProduct({subscriptionId: '1234', productId: '4321'}, {date: '2014-04-01'})
           expect(api.isDone()).to.be.true
 
     describe 'custom url in action', ->
@@ -237,8 +286,8 @@ describe 'resource-client', ->
         .get('/api/new-products?foo=bar')
         .reply(200, {_id: '1234', price: 2})
       response = @Thing.sync.getWithHeader \
-        {},   # params
         { 'foo': 'bar' },   # query params
+        {},
         { headers: { 'x-auth': 'someone' } }  # other options
       expect(api.isDone()).to.be.true
 
