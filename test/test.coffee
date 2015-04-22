@@ -198,7 +198,7 @@ describe 'resource-client', ->
         expect(api.isDone()).to.be.true
 
   describe '@ params', ->
-    it 'reads the value from the value if not in the params', fibrous ->
+    it 'reads the value from the body if not in the params', fibrous ->
       @Product = resourceClient
         url: "#{serverUrl}/api/products/:_id"
         params: {_id: '@_id'}
@@ -211,7 +211,20 @@ describe 'resource-client', ->
       product.sync.update()
       expect(api.isDone()).to.be.true
 
-    it 'overwrites if there is a request param', fibrous ->
+    it 'removes ignores the param if not in the body', fibrous ->
+      @Product = resourceClient
+        url: "#{serverUrl}/api/products/:_id"
+        params: {_id: '@_id'}
+
+      api = nock(serverUrl)
+        .put('/api/products', {price: 2})
+        .reply(200, {_id: '1234', price: 2})
+
+      product = new @Product({price: 2})
+      product.sync.update()
+      expect(api.isDone()).to.be.true
+
+    it 'uses the request param if there is a request param', fibrous ->
       @Product = resourceClient
         url: "#{serverUrl}/api/products/:_id"
         params: {_id: '@_id'}
