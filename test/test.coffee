@@ -237,25 +237,24 @@ describe 'resource-client', ->
       expect(api.isDone()).to.be.true
 
   describe 'custom action', ->
-    describe 'custom POST action method', ->
-      describe 'class method', ->
-        it 'creates the object', fibrous ->
-          Subscription = resourceClient
-            url: "#{serverUrl}/api/subscriptions/:subscriptionId"
+    describe 'custom POST action', ->
+      it 'posts the correct data and URL', fibrous ->
+        Subscription = resourceClient
+          url: "#{serverUrl}/api/subscriptions/:subscriptionId"
 
-          Subscription.action 'skipProduct',
-            method: 'POST'
-            url: "#{serverUrl}/api/subscriptions/:subscriptionId/products/:productId/skips"
+        Subscription.action 'skipProduct',
+          method: 'POST'
+          url: "#{serverUrl}/api/subscriptions/:subscriptionId/products/:productId/skips"
 
-          api = nock(serverUrl)
-            .post('/api/subscriptions/1234/products/4321/skips', {date: '2014-04-01'})
-            .reply(200, {_id: '1234'})
+        api = nock(serverUrl)
+          .post('/api/subscriptions/1234/products/4321/skips', {date: '2014-04-01'})
+          .reply(200, {_id: '1234'})
 
-          Subscription.sync.skipProduct({subscriptionId: '1234', productId: '4321'}, {date: '2014-04-01'})
-          expect(api.isDone()).to.be.true
+        Subscription.sync.skipProduct({subscriptionId: '1234', productId: '4321'}, {date: '2014-04-01'})
+        expect(api.isDone()).to.be.true
 
     describe 'custom url in action', ->
-      it 'doesnt pollute other actions', fibrous ->
+      it 'doesnt pollute subsequent action urls', fibrous ->
         Product = resourceClient url: "#{serverUrl}/api/products/:_id"
 
         Product.action 'deliver',
