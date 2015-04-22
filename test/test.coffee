@@ -211,7 +211,7 @@ describe 'resource-client', ->
       product.sync.update()
       expect(api.isDone()).to.be.true
 
-    it 'removes ignores the param if not in the body', fibrous ->
+    it 'removes the param if not in the body', fibrous ->
       @Product = resourceClient
         url: "#{serverUrl}/api/products/:_id"
         params: {_id: '@_id'}
