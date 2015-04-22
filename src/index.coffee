@@ -33,7 +33,7 @@ module.exports = resourceClient = (resourceOptions) ->
         requestParams = opts.shift() or {}
         requestOptions = opts.pop() or {}
         requestOptions.url = do ->
-          mergedParams = _.assign(resourceOptions.params, actionOptions.params, requestParams)
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams)
         actionRequest.get requestOptions, (err, response) ->
           handleResponse(err, response, null, done)
@@ -50,7 +50,7 @@ module.exports = resourceClient = (resourceOptions) ->
         requestParams = opts.shift() or {}
         requestOptions = opts.pop() or {}
         requestOptions.url = do ->
-          mergedParams = _.assign(resourceOptions.params, actionOptions.params, requestParams)
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams)
         actionRequest.get requestOptions, (err, response) ->
           handleResponse(err, response, null, done, actionOptions)
@@ -71,7 +71,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestOptions = opts.pop() or {}
           requestOptions.body = requestBody
           requestOptions.url = do ->
-            mergedParams = _.assign(resourceOptions.params, actionOptions.params, requestParams)
+            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
             urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
           actionRequest[methodFn] requestOptions, (err, response) ->
             handleResponse(err, response, null, done)
@@ -88,7 +88,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestOptions = opts.pop() or {}
           requestOptions.body = @
           requestOptions.url = do ->
-            mergedParams = _.assign(resourceOptions.params, actionOptions.params, requestParams)
+            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
             urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
           actionRequest[methodFn] requestOptions, (err, response) ->
             handleResponse(err, response, @, done)
