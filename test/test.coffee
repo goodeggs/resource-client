@@ -197,6 +197,32 @@ describe 'resource-client', ->
         product.sync.remove()
         expect(api.isDone()).to.be.true
 
+  describe '@ params', ->
+    it 'reads the value from the value if not in the params', fibrous ->
+      @Product = resourceClient
+        url: "#{serverUrl}/api/products/:_id"
+        params: {_id: '@_id'}
+
+      api = nock(serverUrl)
+        .put('/api/products/1234', {_id: '1234'})
+        .reply(200, {_id: '1234'})
+
+      product = new @Product({_id: '1234'})
+      product.sync.update()
+      expect(api.isDone()).to.be.true
+
+    it 'overwrites if there is a request param', fibrous ->
+      @Product = resourceClient
+        url: "#{serverUrl}/api/products/:_id"
+        params: {_id: '@_id'}
+
+      api = nock(serverUrl)
+        .put('/api/products/1234', {})
+        .reply(200, {_id: '1234', price: 2})
+
+      product = @Product.sync.update({_id: '1234'}, {})
+      expect(api.isDone()).to.be.true
+
   describe 'custom action', ->
     describe 'custom POST action method', ->
       describe 'class method', ->
