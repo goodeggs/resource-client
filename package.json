@@ -22,8 +22,9 @@
   "homepage": "https://github.com/goodeggs/resource-client",
   "bugs": "https://github.com/goodeggs/resource-client/issues",
   "dependencies": {
-    "request": "2.54.0",
+    "bluebird": "^2.9.30",
     "lodash": "^3.0.0",
+    "request": "2.54.0",
     "url-assembler": "0.0.3"
   },
   "devDependencies": {

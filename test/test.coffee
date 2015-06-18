@@ -22,6 +22,17 @@ describe 'resource-client', ->
         expect(products).to.have.length 2
         expect(api.isDone()).to.be.true
 
+      it 'gets all products (promise)', ->
+        api = nock(serverUrl)
+          .get('/api/products')
+          .reply(201, [
+            {name: 'apple'}
+            {name: 'orange'}
+          ])
+        @Product.query().then (products) ->
+          expect(products).to.have.length 2
+          expect(api.isDone()).to.be.true
+
       it 'can return first product', fibrous ->
         api = nock(serverUrl)
           .get('/api/products')
@@ -80,6 +91,14 @@ describe 'resource-client', ->
         expect(product.toObject()).to.deep.equal {_id: '1234', name: 'apple'}
         expect(api.isDone()).to.be.true
 
+      it 'gets product with specified id (promise)', ->
+        api = nock(serverUrl)
+          .get('/api/products/1234')
+          .reply(200, {_id: '1234', name: 'apple'})
+        @Product.get({_id: 1234}).then (product) ->
+          expect(product.toObject()).to.deep.equal {_id: '1234', name: 'apple'}
+          expect(api.isDone()).to.be.true
+
       it 'applies query parameters', fibrous ->
         api = nock(serverUrl)
           .get('/api/products/1234?' + encodeURI('select=price'))
@@ -111,13 +130,19 @@ describe 'resource-client', ->
         @api = nock(serverUrl)
           .put('/api/products/1234', {_id: '1234', price: 2})
           .reply(201, {_id: '1234', price: 2})
-        @product = @Product.sync.update({_id: '1234'}, {_id: '1234', price: 2})
 
       it 'sends PUT request with correct data', fibrous ->
+        @product = @Product.sync.update({_id: '1234'}, {_id: '1234', price: 2})
         expect(@product.toObject()).to.deep.equal {_id: '1234', price: 2}
         expect(@api.isDone()).to.be.true
 
+      it 'sends PUT request with correct data (promise)', ->
+        @Product.update({_id: '1234'}, {_id: '1234', price: 2}).then (product) =>
+          expect(product.toObject()).to.deep.equal {_id: '1234', price: 2}
+          expect(@api.isDone()).to.be.true
+
       it 'returns instance of resource', fibrous ->
+        @product = @Product.sync.update({_id: '1234'}, {_id: '1234', price: 2})
         expect(@product).be.an.instanceOf @Product
 
     describe 'instance method', ->
@@ -143,6 +168,14 @@ describe 'resource-client', ->
           .reply(201, {_id: '1234', price: 2})
         product = @Product.sync.save({}, {price: 2})
         expect(api.isDone()).to.be.true
+
+      it 'updates the passed object (promise)', ->
+        @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
+        api = nock(serverUrl)
+          .post('/api/products', {price: 2})
+          .reply(201, {_id: '1234', price: 2})
+        @Product.save({}, {price: 2}).then (product) ->
+          expect(api.isDone()).to.be.true
 
       it 'returns instance of resource', fibrous ->
         @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
@@ -181,6 +214,14 @@ describe 'resource-client', ->
           .reply(200, {_id: '1234', price: 2})
         product = @Product.sync.remove(_id: '1234')
         expect(api.isDone()).to.be.true
+
+      it 'deletes the passed object (promise)', ->
+        @Product = resourceClient url: "#{serverUrl}/api/products/:_id"
+        api = nock(serverUrl)
+          .delete('/api/products/1234')
+          .reply(200, {_id: '1234', price: 2})
+        @Product.remove(_id: '1234').then ->
+          expect(api.isDone()).to.be.true
 
     describe 'instance method', ->
       beforeEach fibrous ->

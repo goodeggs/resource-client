@@ -23,9 +23,18 @@ var Product = resourceClient({
 });
 
 Product.query({isActive: true}, function(err, products) {
-  product = products[0]
-  product.name = 'apple'
-  product.save()
+  product = products[0];
+  product.name = 'apple';
+  product.save();
+});
+
+// or with a promise...
+Product.query({isActive: true}).then(function (products) {
+  product = products[0];
+  product.name = 'apple';
+  product.save();
+}).catch(function (err) {
+  if (err) console.log err;
 });
 ```
 

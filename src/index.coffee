@@ -1,3 +1,4 @@
+Promise = require 'bluebird'
 request = require 'request'
 _ = require 'lodash'
 urlBuilder = require './url_builder'
@@ -29,31 +30,42 @@ module.exports = resourceClient = (resourceOptions) ->
       # call w/ `({params}, {requestOptions}, callback)`
       #      OR `({params}, callback)`
       ###
-      Resource[actionName] = (opts..., done) ->
-        requestParams = opts.shift() or {}
-        requestOptions = opts.pop() or {}
-        requestOptions.url = do ->
-          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-          urlBuilder.build(actionUrl, mergedParams)
-        actionRequest.get requestOptions, (err, response) ->
-          handleResponse(err, response, null, done)
+      Resource[actionName] = (opts...) ->
+        if typeof opts[opts.length - 1] is 'function'
+          done = opts.pop()
+
+        promise = new Promise (resolve, reject) =>
+          requestParams = opts.shift() or {}
+          requestOptions = opts.pop() or {}
+          requestOptions.url = do ->
+            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
+            urlBuilder.build(actionUrl, mergedParams)
+          actionRequest.get requestOptions, (err, response) ->
+            handleResponse({err, response, resolve, reject})
+
+        promise.nodeify(done)
 
     else if actionOptions.method is 'GET' and actionOptions.isArray
       ###
       # get multi w/o params (class method).
       #
-      # call w/ `({params}, {requestOptions}, callback)`
-      #      OR `({params}, callback)`
-      #      OR `(callback)`
+      # call w/ `({params}, {requestOptions}, [callback])`
+      #      OR `({params}, [callback])`
+      #      OR `([callback])`
       ###
-      Resource[actionName] = (opts..., done) ->
-        requestParams = opts.shift() or {}
-        requestOptions = opts.pop() or {}
-        requestOptions.url = do ->
-          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-          urlBuilder.build(actionUrl, mergedParams)
-        actionRequest.get requestOptions, (err, response) ->
-          handleResponse(err, response, null, done, actionOptions)
+      Resource[actionName] = (opts...) ->
+        if typeof opts[opts.length - 1] is 'function'
+          done = opts.pop()
+
+        promise = new Promise (resolve, reject) =>
+          requestParams = opts.shift() or {}
+          requestOptions = opts.pop() or {}
+          requestOptions.url = do ->
+            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
+            urlBuilder.build(actionUrl, mergedParams)
+          actionRequest.get requestOptions, (err, response) ->
+            handleResponse({err, response, resolve, reject, actionOptions})
+        promise.nodeify(done)
 
     else if actionOptions.method in ['PUT', 'POST', 'DELETE']
       do (methodFn = actionOptions.method.toLowerCase()) ->
@@ -61,61 +73,75 @@ module.exports = resourceClient = (resourceOptions) ->
         ###
         # modify single (class method).
         #
-        # call w/ `({params}, body, {requestOptions}, callback)`
-        #      OR `({params}, body, callback)`
-        #      OR `({params}, callback)`
+        # call w/ `({params}, body, {requestOptions}, [callback])`
+        #      OR `({params}, body, [callback])`
+        #      OR `({params}, [callback])`
         ###
-        Resource[actionName] = (opts..., done) ->
-          requestParams = opts.shift() or {}
-          requestBody = opts.shift() or {}
-          requestOptions = opts.pop() or {}
-          requestOptions.body = requestBody
-          requestOptions.url = do ->
-            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-            urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-          actionRequest[methodFn] requestOptions, (err, response) ->
-            handleResponse(err, response, null, done)
+        Resource[actionName] = (opts...) ->
+          if typeof opts[opts.length - 1] is 'function'
+            done = opts.pop()
+
+          promise = new Promise (resolve, reject) =>
+            requestParams = opts.shift() or {}
+            requestBody = opts.shift() or {}
+            requestOptions = opts.pop() or {}
+            requestOptions.body = requestBody
+            requestOptions.url = do ->
+              mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
+              urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
+            actionRequest[methodFn] requestOptions, (err, response) ->
+              handleResponse({err, response, resolve, reject})
+
+          promise.nodeify(done)
 
         ###
         # modify single (instance method).
         #
-        # call w/ `({params}, {requestOptions}, callback)`
-        #      OR `({params}, callback)`
-        #      OR `(callback)`
+        # call w/ `({params}, {requestOptions}, [callback])`
+        #      OR `({params}, [callback])`
+        #      OR `([callback])`
         ###
         Resource::[actionName] = (opts..., done) ->
-          requestParams = opts.shift() or {}
-          requestOptions = opts.pop() or {}
-          requestOptions.body = @
-          requestOptions.url = do ->
-            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-            urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-          actionRequest[methodFn] requestOptions, (err, response) ->
-            handleResponse(err, response, @, done)
+          if typeof opts[opts.length - 1] is 'function'
+            done = opts.pop()
 
-  handleResponse = (err, response, originalObject, done, actionOptions = {}) ->
+          promise = new Promise (resolve, reject) =>
+            requestParams = opts.shift() or {}
+            requestOptions = opts.pop() or {}
+            requestOptions.body = @
+            requestOptions.url = do ->
+              mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
+              urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
+            actionRequest[methodFn] requestOptions, (err, response) ->
+              handleResponse({err, response, originalObject: @, resolve, reject})
+
+          promise.nodeify(done)
+
+  handleResponse = ({err, response, originalObject, resolve, reject, actionOptions}) ->
+    actionOptions ?= {}
+
     if err
-      return done(err)
+      return reject(err)
 
     else if 200 <= response.statusCode < 300
       if Array.isArray(response.body)
         resources = response.body.map (resource) -> new Resource(resource)
         resources = resources[0] if actionOptions.returnFirst
-        return done null, resources
+        return resolve(resources)
       else
         resource =
-          if originalObject
+          if originalObject?
             _.assign(originalObject, response.body)
           else
             new Resource(response.body)
-        return done null, resource
+        return resolve(resource)
 
     else if response.statusCode is 404
-      return done(null, undefined)
+      return resolve(undefined)
 
     else
       errorMessage = JSON.stringify(response.body)
-      return done(new Error(errorMessage))
+      return reject(new Error(errorMessage))
 
   for actionName, actionConfig of defaultActions
     Resource.action actionName, actionConfig
