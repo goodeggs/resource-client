@@ -21,7 +21,7 @@ module.exports = resourceClient = (resourceOptions) ->
     actionOptions.params = {}
     actionUrl = actionOptions.url or resourceOptions.url
 
-    actionRequest = Promise.promisifyAll resourceRequest.defaults(actionOptions)
+    actionRequest = Promise.promisify resourceRequest.defaults(actionOptions)
 
     if actionOptions.method is 'GET' and not actionOptions.isArray
       ###
@@ -37,7 +37,7 @@ module.exports = resourceClient = (resourceOptions) ->
         requestOptions.url = do ->
           mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams)
-        actionRequest.getAsync(requestOptions).spread (response) ->
+        actionRequest(requestOptions).spread (response) ->
           handleResponse({response})
         .nodeify(done)
 
@@ -56,7 +56,7 @@ module.exports = resourceClient = (resourceOptions) ->
         requestOptions.url = do ->
           mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams)
-        actionRequest.getAsync(requestOptions).spread (response) ->
+        actionRequest(requestOptions).spread (response) ->
           handleResponse({response, actionOptions})
         .nodeify(done)
 
@@ -79,7 +79,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestOptions.url = do ->
             mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
             urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-          actionRequest[methodFn+'Async'](requestOptions).spread (response) ->
+          actionRequest(requestOptions).spread (response) ->
             handleResponse({response})
           .nodeify(done)
 
@@ -98,7 +98,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestOptions.url = do ->
             mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
             urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-          actionRequest[methodFn+'Async'](requestOptions).spread (response) =>
+          actionRequest(requestOptions).spread (response) =>
             handleResponse({response, originalObject: @})
           .nodeify(done)
 
