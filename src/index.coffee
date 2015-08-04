@@ -4,6 +4,43 @@ _ = require 'lodash'
 urlBuilder = require './url_builder'
 defaultActions = require './default_actions'
 
+# remove all prototype properties, and undefined fields
+clean = (resource) ->
+  JSON.parse JSON.stringify resource
+
+getUrlParams = (url) ->
+  regex = /\/:(\w*)/g
+  matches = []
+  match = regex.exec(url)
+  while match?
+    matches.push(match[1])
+    match = regex.exec(url)
+  matches
+
+getQueryParams = (params, actionParams, paramDefaults, url, body) ->
+  allParams = _.assign({}, paramDefaults, actionParams, params)
+  paramsToOmit = []
+
+  # handle params with @ in value (e.g. {id: '@_id'})
+  for param, value of allParams
+    if typeof value is 'string' and value.indexOf('@') is 0
+      # if @ value not in body, remove from query params
+      if not body?[value.slice(1)]?
+        paramsToOmit.push(param)
+      # if @ value in body, reassign in query params with actual value
+      else
+        allParams[param] = body?[value.slice(1)]
+
+  paramsToOmit = paramsToOmit.concat(getUrlParams(url))
+  _.omit(allParams, paramsToOmit)
+
+validate = (obj, schema, errorPrefix) ->
+  banUnknownProperties = true if $window.settings?.env is 'test'
+  if schema? and not validator.validate(obj, schema, null, banUnknownProperties)
+    message = "#{errorPrefix}: #{validator.error.message}"
+    message += " at #{validator.error.dataPath}" if validator.error.dataPath?.length
+    throw new Error message
+
 module.exports = resourceClient = (resourceOptions) ->
   resourceOptions.params ?= {}
   resourceOptions.json ?= true
@@ -18,30 +55,15 @@ module.exports = resourceClient = (resourceOptions) ->
       JSON.parse JSON.stringify @
 
   Resource.action = (actionName, actionOptions) ->
+    throw new Error 'actionName must be a string' unless typeof actionName is 'string'
+    throw new Error 'actionOptions.method must be a GET POST PUT or DELETE' unless actionOptions.method in ['GET', 'POST', 'PUT', 'DELETE']
+
     actionOptions.params = {}
     actionUrl = actionOptions.url or resourceOptions.url
 
     actionRequest = Promise.promisify resourceRequest.defaults(actionOptions)
 
-    if actionOptions.method is 'GET' and not actionOptions.isArray
-      ###
-      # get single w/ params (class method).
-      #
-      # call w/ `({params}, {requestOptions}, callback)`
-      #      OR `({params}, callback)`
-      ###
-      Resource[actionName] = (opts...) ->
-        done = opts.pop() if typeof opts[opts.length - 1] is 'function'
-        requestParams = opts.shift() or {}
-        requestOptions = opts.pop() or {}
-        requestOptions.url = do ->
-          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-          urlBuilder.build(actionUrl, mergedParams)
-        actionRequest(requestOptions).spread (response) ->
-          handleResponse({response})
-        .nodeify(done)
-
-    else if actionOptions.method is 'GET' and actionOptions.isArray
+    if actionOptions.method is 'GET'
       ###
       # get multi w/o params (class method).
       #
@@ -60,7 +82,7 @@ module.exports = resourceClient = (resourceOptions) ->
           handleResponse({response, actionOptions})
         .nodeify(done)
 
-    else if actionOptions.method in ['PUT', 'POST', 'DELETE']
+    else # PUT, POST, or DELETE
       do (methodFn = actionOptions.method.toLowerCase()) ->
         if methodFn is 'delete' then methodFn = 'del'
         ###
