@@ -23,15 +23,17 @@
   "bugs": "https://github.com/goodeggs/resource-client/issues",
   "dependencies": {
     "bluebird": "^2.9.30",
+    "goodeggs-json-schema-validator": "^2.0.2",
     "lodash": "^3.0.0",
     "request": "2.54.0",
     "url-assembler": "0.0.3"
   },
   "devDependencies": {
-    "coffee-script": ">=1.7.x",
-    "mocha": "~1.x.x",
     "chai": "^2.1.0",
+    "chai-as-promised": "^5.1.0",
+    "coffee-script": ">=1.7.x",
     "fibrous": "^0.3.3",
+    "mocha": "~1.x.x",
     "nock": "^1.6.1"
   },
   "publishConfig": {
