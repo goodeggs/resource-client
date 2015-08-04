@@ -1,6 +1,6 @@
 # Resource Client
 
-Easily create node API clients for your APIs. Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resource).
+Easily create node API clients for your APIs. Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resource) and [Angular Validated Resource](https://github.com/goodeggs/angular-validated-resource).
 
 [![NPM version](http://img.shields.io/npm/v/resource-client.svg?style=flat-square)](https://www.npmjs.org/package/resource-client)
 [![Build Status](http://img.shields.io/travis/goodeggs/resource-client.svg?style=flat-square)](https://travis-ci.org/goodeggs/resource-client)
@@ -36,6 +36,30 @@ Product.query({isActive: true}).then(function (products) {
 }).catch(function (err) {
   if (err) console.log err;
 });
+```
+
+You can also configure the resource to use JSON schema validation for every request:
+
+```javascript
+var resourceClient = require('resource-client');
+
+var Product = resourceClient({
+  url: 'http://www.mysite.com/api/products/:_id',
+  headers: {
+    'X-Secret-Token': 'ABCD1234'
+  }
+  // recommended that you do not allow unkown properties when testing.
+  banUnknownProperties: true
+});
+
+Product.action('update', {
+  method: 'PUT'
+  // will reject or pass error to callback if validation fails for any of the below
+  urlParamsSchema: require('./product_schemas/update/url_params.json')
+  queryParamsSchema: require('./product_schemas/update/query_params.json')
+  requestBodySchema: require('./product_schemas/update/request_body.json')
+  responseBodySchema: require('./product_schemas/update/response_body.json')
+})
 ```
 
 ## Creating a Resource
