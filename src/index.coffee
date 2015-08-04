@@ -41,6 +41,10 @@ validate = (obj, schema, errorPrefix) ->
     message += " at #{validator.error.dataPath}" if validator.error.dataPath?.length
     throw new Error message
 
+###
+Create resource with default configuration
+@param {Object} [resourceOptions] - configuration shared for all actions on this resource
+###
 module.exports = resourceClient = (resourceOptions) ->
   resourceOptions.params ?= {}
   resourceOptions.json ?= true
@@ -54,6 +58,11 @@ module.exports = resourceClient = (resourceOptions) ->
     toObject: ->
       JSON.parse JSON.stringify @
 
+  ###
+  Register an action for the resource
+  @param {String} actionName - name of action being registered
+  @param {Object} [actionOptions] - configuration for this particular action
+  ###
   Resource.action = (actionName, actionOptions) ->
     throw new Error 'actionName must be a string' unless typeof actionName is 'string'
     throw new Error 'actionOptions.method must be a GET POST PUT or DELETE' unless actionOptions.method in ['GET', 'POST', 'PUT', 'DELETE']
@@ -65,11 +74,11 @@ module.exports = resourceClient = (resourceOptions) ->
 
     if actionOptions.method is 'GET'
       ###
-      # get multi w/o params (class method).
-      #
-      # call w/ `({params}, {requestOptions}, [callback])`
-      #      OR `({params}, [callback])`
-      #      OR `([callback])`
+      Send a GET request with specified configuration
+      @param {Object} [params] - url params and query params for this action
+      @param {Object} [requestOptions] - custom options set for just this request (such as headers)
+      @param {Function} [callback] - if you don't want to use promises. Can be first second, or third parameter.
+      @returns {Promise} - resolves to returned resource(s)
       ###
       Resource[actionName] = (opts...) ->
         done = opts.pop() if typeof opts[opts.length - 1] is 'function'
@@ -82,47 +91,47 @@ module.exports = resourceClient = (resourceOptions) ->
           handleResponse({response, actionOptions})
         .nodeify(done)
 
-    else # PUT, POST, or DELETE
-      do (methodFn = actionOptions.method.toLowerCase()) ->
-        if methodFn is 'delete' then methodFn = 'del'
-        ###
-        # modify single (class method).
-        #
-        # call w/ `({params}, body, {requestOptions}, [callback])`
-        #      OR `({params}, body, [callback])`
-        #      OR `({params}, [callback])`
-        ###
-        Resource[actionName] = (opts...) ->
-          done = opts.pop() if typeof opts[opts.length - 1] is 'function'
-          requestParams = opts.shift() or {}
-          requestBody = opts.shift() or {}
-          requestOptions = opts.pop() or {}
-          requestOptions.body = requestBody
-          requestOptions.url = do ->
-            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-            urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-          actionRequest(requestOptions).spread (response) ->
-            handleResponse({response})
-          .nodeify(done)
+    else # actionOptions.method is PUT, POST, or DELETE
+      ###
+      Send a PUT, POST, or DELETE request with specified configuration
+      @param {Object} [params] - url params and query params for this action
+      @param {Object} [body] - request body
+      @param {Object} [requestOptions] - custom options set for just this request (such as headers)
+      @param {Function} [callback] - if you don't want to use promises. Can be first second, third, or fourth parameter.
+      @returns {Promise} - resolves to returned resource(s)
+      ###
+      Resource[actionName] = (opts...) ->
+        done = opts.pop() if typeof opts[opts.length - 1] is 'function'
+        requestParams = opts.shift() or {}
+        requestBody = opts.shift() or {}
+        requestOptions = opts.pop() or {}
+        requestOptions.body = requestBody
+        requestOptions.url = do ->
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
+          urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
+        actionRequest(requestOptions).spread (response) ->
+          handleResponse({response})
+        .nodeify(done)
 
-        ###
-        # modify single (instance method).
-        #
-        # call w/ `({params}, {requestOptions}, [callback])`
-        #      OR `({params}, [callback])`
-        #      OR `([callback])`
-        ###
-        Resource::[actionName] = (opts..., done) ->
-          done = opts.pop() if typeof opts[opts.length - 1] is 'function'
-          requestParams = opts.shift() or {}
-          requestOptions = opts.pop() or {}
-          requestOptions.body = @
-          requestOptions.url = do ->
-            mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
-            urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-          actionRequest(requestOptions).spread (response) =>
-            handleResponse({response, originalObject: @})
-          .nodeify(done)
+      ###
+      Send a PUT, POST, or DELETE request with specified configuration. Sends the instantiated
+      object as the body of the request
+      @param {Object} [params] - url params and query params for this action
+      @param {Object} [requestOptions] - custom options set for just this request (such as headers)
+      @param {Function} [callback] - if you don't want to use promises. Can be first second, or third parameter.
+      @returns {Promise} - resolves to returned resource
+      ###
+      Resource::[actionName] = (opts..., done) ->
+        done = opts.pop() if typeof opts[opts.length - 1] is 'function'
+        requestParams = opts.shift() or {}
+        requestOptions = opts.pop() or {}
+        requestOptions.body = @
+        requestOptions.url = do ->
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
+          urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
+        actionRequest(requestOptions).spread (response) =>
+          handleResponse({response, originalObject: @})
+        .nodeify(done)
 
   handleResponse = ({response, originalObject, actionOptions}) ->
     actionOptions ?= {}
