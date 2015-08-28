@@ -1,5 +1,5 @@
 Promise = require 'bluebird'
-request = require 'request'
+request = Promise.promisify require 'request'
 _ = require 'lodash'
 requestValidator = require './request_validator'
 urlBuilder = require './url_builder'
@@ -13,7 +13,6 @@ Create resource with default configuration
 module.exports = resourceClient = (resourceConfig) ->
   resourceConfig.params ?= {}
   resourceConfig.json ?= true
-  resourceRequest = request.defaults resourceConfig
 
   class Resource
     constructor: (newObject) ->
@@ -35,8 +34,6 @@ module.exports = resourceClient = (resourceConfig) ->
     actionConfig.params ?= {}
     actionUrl = actionConfig.url or resourceConfig.url
 
-    actionRequest = Promise.promisify resourceRequest.defaults(actionConfig)
-
     if actionConfig.method is 'GET'
       ###
       Send a GET request with specified configuration
@@ -55,7 +52,8 @@ module.exports = resourceClient = (resourceConfig) ->
         Promise.try =>
           requestValidator.validateUrlParams({requestParams, actionConfig, resourceConfig, actionName})
           requestValidator.validateQueryParams({requestParams, actionConfig, resourceConfig, actionName})
-          actionRequest(requestOptions)
+          mergedOptions = _.merge({}, resourceConfig, actionConfig, requestOptions)
+          request(mergedOptions)
         .spread (response) ->
           handleResponse({response, actionConfig, actionName})
         .nodeify(done)
@@ -82,7 +80,8 @@ module.exports = resourceClient = (resourceConfig) ->
           requestValidator.validateUrlParams({requestParams, actionConfig, resourceConfig, actionName, requestBody})
           requestValidator.validateQueryParams({requestParams, actionConfig, resourceConfig, actionName, requestBody})
           requestValidator.validateRequestBody({actionConfig, resourceConfig, actionName, requestBody})
-          actionRequest(requestOptions)
+          mergedOptions = _.merge({}, resourceConfig, actionConfig, requestOptions)
+          request(mergedOptions)
         .spread (response) =>
           handleResponse({response, actionConfig, actionName})
         .nodeify(done)
@@ -107,7 +106,8 @@ module.exports = resourceClient = (resourceConfig) ->
           requestValidator.validateUrlParams({requestParams, actionConfig, resourceConfig, actionName, requestBody: @})
           requestValidator.validateQueryParams({requestParams, actionConfig, resourceConfig, actionName, requestBody: @})
           requestValidator.validateRequestBody({actionConfig, resourceConfig, actionName, requestBody: @})
-          actionRequest(requestOptions)
+          mergedOptions = _.merge({}, resourceConfig, actionConfig, requestOptions)
+          request(mergedOptions)
         .spread (response) =>
           handleResponse({response, actionConfig, resourceConfig, actionName, originalObject: @})
         .nodeify(done)
