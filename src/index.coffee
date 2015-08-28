@@ -1,5 +1,5 @@
 Promise = require 'bluebird'
-request = Promise.promisify require 'request'
+request = Promise.promisify require 'requestretry'
 _ = require 'lodash'
 requestValidator = require './request_validator'
 urlBuilder = require './url_builder'
@@ -13,6 +13,9 @@ Create resource with default configuration
 module.exports = resourceClient = (resourceConfig) ->
   resourceConfig.params ?= {}
   resourceConfig.json ?= true
+  resourceConfig.maxAttempts ?= 5
+  resourceConfig.retryDelay ?= 5000
+  resourceConfig.retryStrategy ?= request.RetryStrategies.NetworkError
 
   class Resource
     constructor: (newObject) ->

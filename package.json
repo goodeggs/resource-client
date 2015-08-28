@@ -25,7 +25,7 @@
     "bluebird": "^2.9.30",
     "goodeggs-json-schema-validator": "^2.0.2",
     "lodash": "^3.0.0",
-    "request": "2.54.0",
+    "requestretry": "^1.4.0",
     "url-assembler": "0.0.3"
   },
   "devDependencies": {
@@ -34,7 +34,8 @@
     "coffee-script": ">=1.7.x",
     "fibrous": "^0.3.3",
     "mocha": "~1.x.x",
-    "nock": "^1.6.1"
+    "nock": "^1.6.1",
+    "request": "^2.61.0"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
