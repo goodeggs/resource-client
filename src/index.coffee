@@ -1,5 +1,5 @@
 Promise = require 'bluebird'
-request = require 'request'
+request = Promise.promisify require 'requestretry'
 _ = require 'lodash'
 requestValidator = require './request_validator'
 urlBuilder = require './url_builder'
@@ -8,12 +8,14 @@ defaultActions = require './default_actions'
 
 ###
 Create resource with default configuration
-@param {Object} [resourceConfig] - configuration shared for all actions on this resource
+@param {Object} [resourceOptions] - configuration shared for all actions on this resource
 ###
-module.exports = resourceClient = (resourceConfig) ->
-  resourceConfig.params ?= {}
-  resourceConfig.json ?= true
-  resourceRequest = request.defaults resourceConfig
+module.exports = resourceClient = (resourceOptions) ->
+  resourceOptions.params ?= {}
+  resourceOptions.json ?= true
+  resourceOptions.maxAttempts ?= 5
+  resourceOptions.retryDelay ?= 5000
+  resourceOptions.retryStrategy ?= request.RetryStrategies.NetworkError
 
   class Resource
     constructor: (newObject) ->
@@ -26,18 +28,16 @@ module.exports = resourceClient = (resourceConfig) ->
   ###
   Register an action for the resource
   @param {String} actionName - name of action being registered
-  @param {Object} [actionConfig] - configuration for this particular action
+  @param {Object} [actionOptions] - configuration for this particular action
   ###
-  Resource.action = (actionName, actionConfig) ->
+  Resource.action = (actionName, actionOptions) ->
     throw new TypeError 'actionName must be a string' unless typeof actionName is 'string'
-    throw new TypeError 'actionConfig.method must be GET POST PUT or DELETE' unless actionConfig.method in ['GET', 'POST', 'PUT', 'DELETE']
+    throw new TypeError 'actionOptions.method must be GET POST PUT or DELETE' unless actionOptions.method in ['GET', 'POST', 'PUT', 'DELETE']
 
-    actionConfig.params ?= {}
-    actionUrl = actionConfig.url or resourceConfig.url
+    actionOptions.params ?= {}
+    actionUrl = actionOptions.url or resourceOptions.url
 
-    actionRequest = Promise.promisify resourceRequest.defaults(actionConfig)
-
-    if actionConfig.method is 'GET'
+    if actionOptions.method is 'GET'
       ###
       Send a GET request with specified configuration
       @param {Object} [params] - url params and query params for this action
@@ -50,17 +50,18 @@ module.exports = resourceClient = (resourceConfig) ->
         requestParams = opts.shift() or {}
         requestOptions = opts.pop() or {}
         requestOptions.url = do ->
-          mergedParams = _.assign({}, resourceConfig.params, actionConfig.params, requestParams)
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams)
         Promise.try =>
-          requestValidator.validateUrlParams({requestParams, actionConfig, resourceConfig, actionName})
-          requestValidator.validateQueryParams({requestParams, actionConfig, resourceConfig, actionName})
-          actionRequest(requestOptions)
+          requestValidator.validateUrlParams({requestParams, actionOptions, resourceOptions, actionName})
+          requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName})
+          mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
+          request(mergedOptions)
         .spread (response) ->
-          handleResponse({response, actionConfig, actionName})
+          handleResponse({response, actionOptions, actionName})
         .nodeify(done)
 
-    else # actionConfig.method is PUT, POST, or DELETE
+    else # actionOptions.method is PUT, POST, or DELETE
       ###
       Send a PUT, POST, or DELETE request with specified configuration
       @param {Object} [params] - url params and query params for this action
@@ -76,15 +77,16 @@ module.exports = resourceClient = (resourceConfig) ->
         requestOptions = opts.pop() or {}
         requestOptions.body = requestBody
         requestOptions.url = do ->
-          mergedParams = _.assign({}, resourceConfig.params, actionConfig.params, requestParams)
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
         Promise.try =>
-          requestValidator.validateUrlParams({requestParams, actionConfig, resourceConfig, actionName, requestBody})
-          requestValidator.validateQueryParams({requestParams, actionConfig, resourceConfig, actionName, requestBody})
-          requestValidator.validateRequestBody({actionConfig, resourceConfig, actionName, requestBody})
-          actionRequest(requestOptions)
+          requestValidator.validateUrlParams({requestParams, actionOptions, resourceOptions, actionName, requestBody})
+          requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName, requestBody})
+          requestValidator.validateRequestBody({actionOptions, resourceOptions, actionName, requestBody})
+          mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
+          request(mergedOptions)
         .spread (response) =>
-          handleResponse({response, actionConfig, actionName})
+          handleResponse({response, actionOptions, actionName})
         .nodeify(done)
 
       ###
@@ -101,39 +103,40 @@ module.exports = resourceClient = (resourceConfig) ->
         requestOptions = opts.pop() or {}
         requestOptions.body = @
         requestOptions.url = do ->
-          mergedParams = _.assign({}, resourceConfig.params, actionConfig.params, requestParams)
+          mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
         Promise.try =>
-          requestValidator.validateUrlParams({requestParams, actionConfig, resourceConfig, actionName, requestBody: @})
-          requestValidator.validateQueryParams({requestParams, actionConfig, resourceConfig, actionName, requestBody: @})
-          requestValidator.validateRequestBody({actionConfig, resourceConfig, actionName, requestBody: @})
-          actionRequest(requestOptions)
+          requestValidator.validateUrlParams({requestParams, actionOptions, resourceOptions, actionName, requestBody: @})
+          requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName, requestBody: @})
+          requestValidator.validateRequestBody({actionOptions, resourceOptions, actionName, requestBody: @})
+          mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
+          request(mergedOptions)
         .spread (response) =>
-          handleResponse({response, actionConfig, resourceConfig, actionName, originalObject: @})
+          handleResponse({response, actionOptions, resourceOptions, actionName, originalObject: @})
         .nodeify(done)
 
 
   ###
   @param {Object} response - request response object
-  @param {Object} actionConfig
+  @param {Object} actionOptions
   @param {String} actionName
   @param {Object} [originalObject] - original resource instance that was saved
     - once successful, original instance will be updated in place with the response object
   ###
-  handleResponse = ({response, actionConfig, actionName, originalObject}) ->
+  handleResponse = ({response, actionOptions, actionName, originalObject}) ->
     throw new TypeError 'response must be an object' unless typeof response is 'object'
-    throw new TypeError 'actionConfig must be an object' unless typeof actionConfig is 'object'
+    throw new TypeError 'actionOptions must be an object' unless typeof actionOptions is 'object'
     throw new TypeError 'actionName must be a string' unless typeof actionName is 'string'
     throw new TypeError 'originalObject must be an object' if originalObject? and typeof originalObject isnt 'object'
 
-    actionConfig ?= {}
+    actionOptions ?= {}
 
     if 200 <= response.statusCode < 300
-      requestValidator.validateResponseBody({actionConfig, resourceConfig, actionName, responseBody: response.body})
+      requestValidator.validateResponseBody({actionOptions, resourceOptions, actionName, responseBody: response.body})
 
       if Array.isArray(response.body)
         resources = response.body.map (resource) -> new Resource(resource)
-        resources = resources[0] if actionConfig.returnFirst
+        resources = resources[0] if actionOptions.returnFirst
         return resources
       else
         resource =
@@ -153,7 +156,7 @@ module.exports = resourceClient = (resourceConfig) ->
   ###
   Add default methods.
   ###
-  for actionName, actionConfig of defaultActions
-    Resource.action actionName, actionConfig
+  for actionName, actionOptions of defaultActions
+    Resource.action actionName, actionOptions
 
   return Resource
