@@ -18,7 +18,7 @@ stripRemainingUrlParams = (url) ->
 populateUrlParamsFromBody = (params, body) ->
   populatedParams = {}
   for param, value of params
-    if typeof value is 'string' and value.indexOf('@') isnt -1
+    if typeof value is 'string' and value[0] is '@'
       lookupKey = value.replace('@', '')
       newValue = body[lookupKey]
       populatedParams[param] = newValue if newValue?

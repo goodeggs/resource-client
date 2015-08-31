@@ -107,6 +107,14 @@ describe 'resource-client', ->
         expect(product.toObject()).to.deep.equal {_id: '1234', price: 2.5}
         expect(api.isDone()).to.be.true
 
+      it 'applies query with @ in the string (like emails)', fibrous ->
+        api = nock(serverUrl)
+          .get('/api/products/1234?email=test%40gmail.com')
+          .reply(200, {_id: '1234', price: 2.5})
+        product = @Product.sync.get({_id: '1234', email: 'test@gmail.com'})
+        expect(product.toObject()).to.deep.equal {_id: '1234', price: 2.5}
+        expect(api.isDone()).to.be.true
+
       it 'instantiates object as a resource', fibrous ->
         api = nock(serverUrl)
           .get('/api/products/1234')
