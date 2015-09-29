@@ -58,6 +58,19 @@ describe 'resource-client', ->
         expect(products[1].toObject()).to.deep.equal {name: 'orange'}
         expect(api.isDone()).to.be.true
 
+      it 'applies url attribute as a query parameter, if it is provided with an array', fibrous ->
+        api = nock(serverUrl)
+          .get('/api/products?' + encodeURI('_id[0]=123&_id[1]=456'))
+          .reply(201, [
+            {_id: '123'}
+            {_id: '456'}
+          ])
+        products = @Product.sync.query({_id: ['123', '456']})
+        expect(products).to.have.length 2
+        expect(products[0].toObject()).to.deep.equal {_id: '123'}
+        expect(products[1].toObject()).to.deep.equal {_id: '456'}
+        expect(api.isDone()).to.be.true
+
       it 'instantiates every object as a resource', fibrous ->
         api = nock(serverUrl)
           .get('/api/products')

@@ -1,3 +1,4 @@
+_ = require 'lodash'
 UrlAssembler = require 'url-assembler'
 
 ###
@@ -8,8 +9,12 @@ Build url from url template
 @param [body] - body object to use for populating params (when params are defined using @, eg. {_id: '@_id'})
 ###
 module.exports.build = (urlTemplate, params, body={}) ->
-  populatedParams = populateUrlParamsFromBody(params, body)
-  url = UrlAssembler().template(urlTemplate).param(populatedParams).toString()
+  params = populateUrlParamsFromBody(params, body)
+  url = UrlAssembler()
+    .template(urlTemplate)
+    .param(_.omit params, _.isArray)
+    .query(_.pick params, _.isArray)
+    .toString()
   stripRemainingUrlParams(url)
 
 stripRemainingUrlParams = (url) ->
