@@ -151,7 +151,9 @@ module.exports = resourceClient = (resourceOptions) ->
 
     else # 400s and 500s
       errorMessage = JSON.stringify(response.body)
-      throw new Error(errorMessage)
+      err = Error(errorMessage)
+      err.statusCode = response.statusCode
+      throw err
 
   ###
   Add default methods.
