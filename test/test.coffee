@@ -404,3 +404,10 @@ describe 'resource-client', ->
         .get('/api/products/1234')
         .reply(500, {message: 'Cast to ObjectId failed for value'})
       expect(=> @Product.sync.get({_id: '1234'})).to.throw /Cast to ObjectId failed for value/
+
+    it 'includes the statusCode of the original response', fibrous ->
+      api = nock(serverUrl)
+        .get('/api/products/1234')
+        .reply(500, {message: 'Cast to ObjectId failed for value'})
+      try @Product.sync.get({_id: '1234'}) catch e
+      expect(e.statusCode).to.eql 500
