@@ -57,7 +57,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName})
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
           request(mergedOptions)
-        .spread (response) ->
+        .then (response) ->
           handleResponse({response, actionOptions, actionName})
         .nodeify(done)
 
@@ -85,7 +85,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestValidator.validateRequestBody({actionOptions, resourceOptions, actionName, requestBody})
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
           request(mergedOptions)
-        .spread (response) =>
+        .then (response) =>
           handleResponse({response, actionOptions, actionName})
         .nodeify(done)
 
@@ -111,7 +111,7 @@ module.exports = resourceClient = (resourceOptions) ->
           requestValidator.validateRequestBody({actionOptions, resourceOptions, actionName, requestBody: @})
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
           request(mergedOptions)
-        .spread (response) =>
+        .then (response) =>
           handleResponse({response, actionOptions, resourceOptions, actionName, originalObject: @})
         .nodeify(done)
 

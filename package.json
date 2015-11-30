@@ -22,10 +22,10 @@
   "homepage": "https://github.com/goodeggs/resource-client",
   "bugs": "https://github.com/goodeggs/resource-client/issues",
   "dependencies": {
-    "bluebird": "^2.9.30",
+    "bluebird": "^3.0.5",
     "goodeggs-json-schema-validator": "^2.0.2",
     "lodash": "^3.0.0",
-    "requestretry": "^1.4.0",
+    "requestretry": "^1.5.0",
     "url-assembler": "0.0.3"
   },
   "devDependencies": {
