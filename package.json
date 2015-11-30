@@ -1,6 +1,6 @@
 {
   "name": "resource-client",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "description": "Easily create api clients for your server side resources.",
   "author": "Good Eggs <open-source@goodeggs.com>",
   "contributors": [
