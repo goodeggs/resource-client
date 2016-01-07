@@ -1,21 +1,21 @@
-Promise = require 'bluebird'
-request = Promise.promisify require 'requestretry'
+require('es6-promise').polyfill()
+require 'isomorphic-fetch'
+promiseRetry = require 'promise-retry'
 _ = require 'lodash'
 requestValidator = require './request_validator'
 urlBuilder = require './url_builder'
-defaultActions = require './default_actions'
-
 
 ###
 Create resource with default configuration
-@param {Object} [resourceOptions] - configuration shared for all actions on this resource
+@param {Object} [resourceOptions] - all fetch config options + maxAttempts, params, and url
 ###
-module.exports = resourceClient = (resourceOptions) ->
+module.exports = resourceClient = (resourceOptions, actionConfig) ->
   resourceOptions.params ?= {}
-  resourceOptions.json ?= true
+  # Support CORS by default on browser.
+  # This option is ignored in a server context.
+  # See https://github.com/bitinn/node-fetch/blob/master/LIMITS.md for details
+  resourceOptions.credentials ?= 'include'
   resourceOptions.maxAttempts ?= 5
-  resourceOptions.retryDelay ?= 5000
-  resourceOptions.retryStrategy ?= request.RetryStrategies.NetworkError
 
   class Resource
     constructor: (newObject) ->
@@ -25,12 +25,7 @@ module.exports = resourceClient = (resourceOptions) ->
     toObject: ->
       JSON.parse JSON.stringify @
 
-  ###
-  Register an action for the resource
-  @param {String} actionName - name of action being registered
-  @param {Object} [actionOptions] - configuration for this particular action
-  ###
-  Resource.action = (actionName, actionOptions) ->
+  _.each actionConfig, (actionOptions, actionName) ->
     throw new TypeError 'actionName must be a string' unless typeof actionName is 'string'
     throw new TypeError 'actionOptions.method must be GET POST PUT or DELETE' unless actionOptions.method in ['GET', 'POST', 'PUT', 'DELETE']
 
@@ -49,17 +44,16 @@ module.exports = resourceClient = (resourceOptions) ->
         done = opts.pop() if typeof opts[opts.length - 1] is 'function'
         requestParams = opts.shift() or {}
         requestOptions = opts.pop() or {}
-        requestOptions.url = do ->
+        URL = do ->
           mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams)
-        Promise.try =>
+        Promise.resolve().then =>
           requestValidator.validateUrlParams({requestParams, actionOptions, resourceOptions, actionName})
           requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName})
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
-          request(mergedOptions)
+          fetchRetry(URL, mergedOptions, mergedOptions.maxAttempts)
         .then (response) ->
           handleResponse({response, actionOptions, actionName})
-        .nodeify(done)
 
     else # actionOptions.method is PUT, POST, or DELETE
       ###
@@ -76,18 +70,17 @@ module.exports = resourceClient = (resourceOptions) ->
         requestBody = opts.shift() or {}
         requestOptions = opts.pop() or {}
         requestOptions.body = requestBody
-        requestOptions.url = do ->
+        URL = do ->
           mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-        Promise.try =>
+        Promise.resolve().then =>
           requestValidator.validateUrlParams({requestParams, actionOptions, resourceOptions, actionName, requestBody})
           requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName, requestBody})
           requestValidator.validateRequestBody({actionOptions, resourceOptions, actionName, requestBody})
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
-          request(mergedOptions)
+          fetchRetry(URL, mergedOptions, mergedOptions.maxAttempts)
         .then (response) =>
           handleResponse({response, actionOptions, actionName})
-        .nodeify(done)
 
       ###
       Send a PUT, POST, or DELETE request with specified configuration. Sends the instantiated
@@ -102,19 +95,26 @@ module.exports = resourceClient = (resourceOptions) ->
         requestParams = opts.shift() or {}
         requestOptions = opts.pop() or {}
         requestOptions.body = @
-        requestOptions.url = do ->
+        URL = do ->
           mergedParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
           urlBuilder.build(actionUrl, mergedParams, requestOptions.body)
-        Promise.try =>
+        Promise.resolve().then =>
           requestValidator.validateUrlParams({requestParams, actionOptions, resourceOptions, actionName, requestBody: @})
           requestValidator.validateQueryParams({requestParams, actionOptions, resourceOptions, actionName, requestBody: @})
           requestValidator.validateRequestBody({actionOptions, resourceOptions, actionName, requestBody: @})
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
-          request(mergedOptions)
+          fetchRetry(URL, mergedOptions, mergedOptions.maxAttempts)
         .then (response) =>
           handleResponse({response, actionOptions, resourceOptions, actionName, originalObject: @})
-        .nodeify(done)
 
+  fetchRetry = (url, fetchOptions, maxRetryAttempts) ->
+    fetchOptionsClone = _.assign({}, fetchOptions)
+    if fetchOptions.body
+      fetchOptionsClone.body = JSON.stringify(fetchOptions.body)
+    promiseRetry (retry) ->
+      fetch(url, fetchOptionsClone)
+      .catch(retry)
+    , {retries: maxRetryAttempts}
 
   ###
   @param {Object} response - request response object
@@ -130,35 +130,31 @@ module.exports = resourceClient = (resourceOptions) ->
     throw new TypeError 'originalObject must be an object' if originalObject? and typeof originalObject isnt 'object'
 
     actionOptions ?= {}
+    if 200 <= response.status < 300
+      return response.json().then (responseBody) ->
+        requestValidator.validateResponseBody({actionOptions, resourceOptions, actionName, responseBody})
 
-    if 200 <= response.statusCode < 300
-      requestValidator.validateResponseBody({actionOptions, resourceOptions, actionName, responseBody: response.body})
+        if Array.isArray(responseBody)
+          resources = responseBody.map (resource) -> new Resource(resource)
+          resources = resources[0] if actionOptions.returnFirst
+          return resources
+        else
+          resource =
+            if originalObject?
+              _.assign(originalObject, responseBody)
+            else
+              new Resource(responseBody)
+          return resource
 
-      if Array.isArray(response.body)
-        resources = response.body.map (resource) -> new Resource(resource)
-        resources = resources[0] if actionOptions.returnFirst
-        return resources
-      else
-        resource =
-          if originalObject?
-            _.assign(originalObject, response.body)
-          else
-            new Resource(response.body)
-        return resource
-
-    else if response.statusCode is 404
+    else if response.status is 404
       return undefined
 
-    else # 400s and 500s
-      errorMessage = JSON.stringify(response.body)
-      err = Error(errorMessage)
-      err.statusCode = response.statusCode
-      throw err
-
-  ###
-  Add default methods.
-  ###
-  for actionName, actionOptions of defaultActions
-    Resource.action actionName, actionOptions
+    else
+      return response.text().then (responseBody) ->
+        err = new Error(response.statusText)
+        err.response = response
+        err.statusCode = response.status
+        err.responseBody = responseBody
+        throw err
 
   return Resource

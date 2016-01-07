@@ -22,19 +22,19 @@
   "homepage": "https://github.com/goodeggs/resource-client",
   "bugs": "https://github.com/goodeggs/resource-client/issues",
   "dependencies": {
-    "bluebird": "^3.0.5",
+    "es6-promise": "^3.0.2",
     "goodeggs-json-schema-validator": "^2.0.2",
+    "isomorphic-fetch": "^2.2.0",
     "lodash": "^3.0.0",
-    "requestretry": "^1.5.0",
+    "promise-retry": "^1.0.1",
     "url-assembler": "0.0.3"
   },
   "devDependencies": {
     "chai": "^2.1.0",
     "chai-as-promised": "^5.1.0",
     "coffee-script": ">=1.7.x",
-    "fibrous": "^0.3.3",
     "mocha": "~1.x.x",
-    "nock": "^1.6.1",
+    "nock": "^4.0.0",
     "request": "^2.61.0"
   },
   "publishConfig": {

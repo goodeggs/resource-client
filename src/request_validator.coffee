@@ -1,10 +1,7 @@
 _ = require 'lodash'
-Promise = require 'bluebird'
 validator = require 'goodeggs-json-schema-validator'
 
-
 module.exports =
-
   ###
   Throws if url params invalid
   @param {Object} requestParams
@@ -26,7 +23,6 @@ module.exports =
     validate clean(urlParams), actionOptions.urlParamsSchema,
       errorPrefix: "Url params validation failed for action '#{actionName}'"
       banUnknownProperties: getBanUnkownProperties({actionOptions, resourceOptions})
-
 
   ###
   Throws if query params invalid
@@ -50,7 +46,6 @@ module.exports =
       errorPrefix: "Query validation failed for action '#{actionName}'"
       banUnknownProperties: getBanUnkownProperties({actionOptions, resourceOptions})
 
-
   ###
   Throws if request body invalid
   @param {Object} actionOptions
@@ -67,7 +62,6 @@ module.exports =
     validate clean(requestBody), actionOptions.requestBodySchema,
       errorPrefix: "Request body validation failed for action '#{actionName}'"
       banUnknownProperties: getBanUnkownProperties({actionOptions, resourceOptions})
-
 
   ###
   Throws if response body invalid
@@ -86,11 +80,9 @@ module.exports =
       errorPrefix: "Response body validation failed for action '#{actionName}'"
       banUnknownProperties: getBanUnkownProperties({actionOptions, resourceOptions})
 
-
 # remove all prototype properties, and undefined fields
 clean = (resource) ->
   JSON.parse JSON.stringify resource
-
 
 getUrlParams = (url) ->
   regex = /\/:(\w*)/g
@@ -100,7 +92,6 @@ getUrlParams = (url) ->
     matches.push(match[1])
     match = regex.exec(url)
   matches
-
 
 getUrlParamValues = ({requestParams, actionOptions, resourceOptions, requestBody}) ->
   allParams = _.assign({}, resourceOptions.params, actionOptions.params, requestParams)
@@ -121,7 +112,6 @@ getUrlParamValues = ({requestParams, actionOptions, resourceOptions, requestBody
         allParams[param] = requestBody?[value.slice(1)]
   _.omit(allParams, paramsToOmit)
 
-
 getBanUnkownProperties = ({actionOptions, resourceOptions}) ->
   if actionOptions.banUnknownProperties?
     actionOptions.banUnknownProperties
@@ -129,7 +119,6 @@ getBanUnkownProperties = ({actionOptions, resourceOptions}) ->
     resourceOptions.banUnknownProperties
   else
     false
-
 
 getQueryParamValues = ({requestParams, actionOptions, resourceOptions, requestBody}) ->
   url = if actionOptions.url? then actionOptions.url else resourceOptions.url
@@ -149,7 +138,6 @@ getQueryParamValues = ({requestParams, actionOptions, resourceOptions, requestBo
   paramsToOmit = paramsToOmit.concat(getUrlParams(url))
   _.omit(allParams, paramsToOmit)
 
-
 ###
 Throws if validation fails
 ###
@@ -159,4 +147,3 @@ validate = (obj, schema, {errorPrefix, banUnknownProperties}) ->
     message = "#{errorPrefix}: #{validator.error.message}"
     message += " at #{validator.error.dataPath}" if validator.error.dataPath?.length
     throw new Error message
-
