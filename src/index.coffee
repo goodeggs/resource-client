@@ -109,6 +109,10 @@ module.exports = resourceClient = (resourceOptions, actionConfig) ->
 
   fetchRetry = (url, fetchOptions, maxRetryAttempts) ->
     fetchOptionsClone = _.assign({}, fetchOptions)
+    jsonHeaders =
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    fetchOptionsClone.headers = _.assign {}, jsonHeaders, fetchOptions.headers
     if fetchOptions.body
       fetchOptionsClone.body = JSON.stringify(fetchOptions.body)
     promiseRetry (retry) ->
