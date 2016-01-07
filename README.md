@@ -1,6 +1,6 @@
 # Resource Client
 
-Easily create node API clients for your APIs. Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resource) and [Angular Validated Resource](https://github.com/goodeggs/angular-validated-resource).
+Easily create isomorphic API clients for interacting with RESTful APIs. Built with [isomorphic-fetch](https://github.com/matthew-andrews/isomorphic-fetch). Inspired by [Angular Resource](https://docs.angularjs.org/api/ngResource/service/$resource) and [Angular Validated Resource](https://github.com/goodeggs/angular-validated-resource).
 
 [![NPM version](http://img.shields.io/npm/v/resource-client.svg?style=flat-square)](https://www.npmjs.org/package/resource-client)
 [![Build Status](http://img.shields.io/travis/goodeggs/resource-client.svg?style=flat-square)](https://travis-ci.org/goodeggs/resource-client)
@@ -20,15 +20,13 @@ var Product = resourceClient({
   headers: {
     'X-Secret-Token': 'ABCD1234'
   }
+}, {
+  "query": {
+    method: 'GET',
+    isArray: true
+  }
 });
 
-Product.query({isActive: true}, function(err, products) {
-  product = products[0];
-  product.name = 'apple';
-  product.save();
-});
-
-// or with a promise...
 Product.query({isActive: true}).then(function (products) {
   product = products[0];
   product.name = 'apple';
@@ -36,7 +34,6 @@ Product.query({isActive: true}).then(function (products) {
 }).catch(function (err) {
   if (err) console.log err;
 });
-```
 
 You can also configure the resource to use JSON schema validation for every request:
 
@@ -64,12 +61,13 @@ Product.action('update', {
 
 ## Creating a Resource
 
-### resourceClient(options)
+### resourceClient(options, actionConfig)
 
-- **options** - default request options for this resource. You can use any option from the [request][request] module, with a few additions:
+- **options** - default request options for this resource. You can use any option supported by [fetch](https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch/fetch), with a few additions:
   - **url** - same as request url but can contain variables prefixed with a colon such as `products/:name`
   - **params** - First used to populate url params, then any leftover are added as query params. Note, you can define a param using '@' to read the param value off the request body `{_id: '@_id'}`.
-  - **json** - set to true by default
+  - **maxAttempts** - maximum number of retries on network failure (defaults to 5)
+- **actionConfig** - object where keys are the action names, and values are configuration objects containing action-specific request options.
 
 
 ```javascript
@@ -101,19 +99,19 @@ var Product = resourceClient({
   headers: {
     'X-Secret-Token': 'ABCD1234'
   }
+}, {
+  'getActive', {
+    method: 'GET'
+    isArray: true
+    params: {isActive: true}
+  },
+  'queryOne': {
+    method: 'GET'
+    isArray: true
+    returnFirst: true
+  }
 });
 
-Product.action('getActive', {
-  method: 'GET'
-  isArray: true
-  params: {isActive: true}
-});
-
-Product.action('queryOne', {
-  method: 'GET'
-  isArray: true
-  returnFirst: true
-});
 ```
 
 If the method is GET, you can use it as a class method:
@@ -121,12 +119,8 @@ If the method is GET, you can use it as a class method:
 - `Class.method([params], [options], callback)`
 
 ```javascript
-Product.action('get', {
-  method: 'GET'
-});
-
 // class method
-Product.get({_id: 1234}, function (err, product) { ... })
+Product.get({_id: 1234}).then(function (product) { ... })
 ```
 
 If the method is PUT, POST, or DELETE, you can use it as both a class or an instance method:
@@ -135,30 +129,13 @@ If the method is PUT, POST, or DELETE, you can use it as both a class or an inst
 - `instance.method([params], [options], callback)`
 
 ```javascript
-Product.action('save', {
-  method: 'POST'
-});
-
 // class method
 Product.save({name: 'apple'}, function (err, product) { ... });
 
 // instance method
 product = new Product({name: 'apple'});
-product.save(function(err) { ... });
+product.save().then(function (updatedProduct) { ... })
 ```
-
-## Default Actions
-
-Every new resource will come with these methods by default. However, we recommend
-you explicitly define an action for each endpoint exposed by your API.
-
-- **get** - {method: 'GET'}
-- **query** - {method: 'GET', isArray: true}
-- **queryOne** - {method: 'GET', isArray: true, returnFirst: true}
-- **update** - {method: 'PUT'}
-- **save** - {method: 'POST'}
-- **remove** - {method: 'DELETE'}
-
 
 ## Additional per-request options
 
@@ -171,12 +148,10 @@ Product.save(
   {},                 // params
   {name: 'apple'},    // body
   { headers: {} },    // options
-  function (err, product) { ... }
- );
+)
 
 Product.getById(urlParams, queryParams, otherOptions, callback);
 ```
-
 
 ## Contributing
 
