@@ -23,7 +23,7 @@
   "bugs": "https://github.com/goodeggs/resource-client/issues",
   "dependencies": {
     "bluebird": "^3.0.5",
-    "goodeggs-json-schema-validator": "^2.0.2",
+    "goodeggs-json-schema-validator": "^3.1.0",
     "lodash": "^3.0.0",
     "requestretry": "^1.5.0",
     "url-assembler": "0.0.3"
