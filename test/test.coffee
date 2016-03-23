@@ -397,13 +397,13 @@ describe 'resource-client', ->
       api = nock(serverUrl)
         .get('/api/products/1234')
         .reply(500, 'Something went wrong')
-      expect(=> @Product.sync.get({_id: '1234'})).to.throw /Something went wrong/
+      expect(=> @Product.sync.get({_id: '1234'})).to.throw /500.*Something went wrong/
 
     it 'stringifies the error message if it is an object (for friendly error logging)', fibrous ->
       api = nock(serverUrl)
         .get('/api/products/1234')
         .reply(500, {message: 'Cast to ObjectId failed for value'})
-      expect(=> @Product.sync.get({_id: '1234'})).to.throw /Cast to ObjectId failed for value/
+      expect(=> @Product.sync.get({_id: '1234'})).to.throw /500.*Cast to ObjectId failed for value/
 
     it 'includes the statusCode of the original response', fibrous ->
       api = nock(serverUrl)

@@ -58,7 +58,7 @@ module.exports = resourceClient = (resourceOptions) ->
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
           request(mergedOptions)
         .then (response) ->
-          handleResponse({response, actionOptions, actionName})
+          handleResponse({response, actionOptions, actionName, actionUrl})
         .nodeify(done)
 
     else # actionOptions.method is PUT, POST, or DELETE
@@ -86,7 +86,7 @@ module.exports = resourceClient = (resourceOptions) ->
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
           request(mergedOptions)
         .then (response) =>
-          handleResponse({response, actionOptions, actionName})
+          handleResponse({response, actionOptions, actionName, actionUrl})
         .nodeify(done)
 
       ###
@@ -112,7 +112,7 @@ module.exports = resourceClient = (resourceOptions) ->
           mergedOptions = _.merge({}, resourceOptions, actionOptions, requestOptions)
           request(mergedOptions)
         .then (response) =>
-          handleResponse({response, actionOptions, resourceOptions, actionName, originalObject: @})
+          handleResponse({response, actionOptions, resourceOptions, actionName, originalObject: @, actionUrl})
         .nodeify(done)
 
 
@@ -123,7 +123,7 @@ module.exports = resourceClient = (resourceOptions) ->
   @param {Object} [originalObject] - original resource instance that was saved
     - once successful, original instance will be updated in place with the response object
   ###
-  handleResponse = ({response, actionOptions, actionName, originalObject}) ->
+  handleResponse = ({response, actionOptions, actionName, originalObject, actionUrl}) ->
     throw new TypeError 'response must be an object' unless typeof response is 'object'
     throw new TypeError 'actionOptions must be an object' unless typeof actionOptions is 'object'
     throw new TypeError 'actionName must be a string' unless typeof actionName is 'string'
@@ -150,8 +150,8 @@ module.exports = resourceClient = (resourceOptions) ->
       return undefined
 
     else # 400s and 500s
-      errorMessage = JSON.stringify(response.body)
-      err = Error(errorMessage)
+      errorMessage = "Error #{response.statusCode} performing resource action `#{actionName}` (`#{actionUrl}`): #{JSON.stringify response.body})"
+      err = new Error(errorMessage)
       err.statusCode = response.statusCode
       throw err
 
