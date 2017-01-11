@@ -153,6 +153,7 @@ module.exports = resourceClient = (resourceOptions) ->
       errorMessage = "Error #{response.statusCode} performing resource action `#{actionName}` (`#{actionUrl}`): #{JSON.stringify response.body})"
       err = new Error(errorMessage)
       err.statusCode = response.statusCode
+      err.body = response.body
       throw err
 
   ###
