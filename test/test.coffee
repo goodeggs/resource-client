@@ -343,7 +343,7 @@ describe 'resource-client', ->
         url: "#{serverUrl}/api/new-products"
 
     it 'includes headers and query params in request', fibrous ->
-      api = nock(serverUrl, reqheaders: { 'x-auth': 'someone' })
+      api = nock(serverUrl, reqheaders: { 'user-agent': resourceClient.DEFAULT_USER_AGENT, 'x-auth': 'someone' })
         .get('/api/new-products?foo=bar')
         .reply(200, {_id: '1234', price: 2})
       response = @Thing.sync.getWithHeader \
@@ -367,6 +367,7 @@ describe 'resource-client', ->
 
     it 'combines headers from resource, action, and request', fibrous ->
       api = nock(serverUrl, reqheaders: {
+        'user-agent': resourceClient.DEFAULT_USER_AGENT
         'x-default': 'A'
         'x-action': 'B'
         'x-request': 'C'
