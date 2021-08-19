@@ -33,7 +33,7 @@
     "chai-as-promised": "^5.1.0",
     "coffee-script": ">=1.7.x",
     "fibrous": "^0.3.3",
-    "mocha": "~1.x.x",
+    "mocha": "~9.x.x",
     "nock": "^1.6.1",
     "request": "^2.61.0"
   },
