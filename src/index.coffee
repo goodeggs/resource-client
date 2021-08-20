@@ -1,5 +1,7 @@
 Promise = require 'bluebird'
-request = Promise.promisify require 'requestretry'
+version = require('../package.json').version
+userAgent = "goodeggs/resource-client #{version}"
+request = Promise.promisify require('requestretry').defaults({headers: {'User-Agent': userAgent}})
 _ = require 'lodash'
 requestValidator = require './request_validator'
 urlBuilder = require './url_builder'
@@ -163,3 +165,5 @@ module.exports = resourceClient = (resourceOptions) ->
     Resource.action actionName, actionOptions
 
   return Resource
+
+resourceClient.DEFAULT_USER_AGENT = userAgent
